@@ -71,10 +71,6 @@ export const addMeal = command(
 		protein: z.number().int().optional(),
 		carbs: z.number().int().optional(),
 		fat: z.number().int().optional(),
-		sodium: z.number().int().optional(),
-		cholesterol: z.number().int().optional(),
-		fiber: z.number().int().optional(),
-		sugar: z.number().int().optional(),
 		imageKey: z.string().optional(),
 		mealTime: z.string().optional()
 	}),
@@ -95,10 +91,6 @@ export const addMeal = command(
 				protein: input.protein,
 				carbs: input.carbs,
 				fat: input.fat,
-				sodium: input.sodium,
-				cholesterol: input.cholesterol,
-				fiber: input.fiber,
-				sugar: input.sugar,
 				image: input.imageKey,
 				mealTime
 			})

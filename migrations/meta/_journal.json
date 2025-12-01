@@ -1,20 +1,13 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1764579999519,
-			"tag": "0000_tearful_zaladane",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1764614468083,
-			"tag": "0001_overjoyed_ronan",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1764629457781,
+      "tag": "0000_optimal_payback",
+      "breakpoints": true
+    }
+  ]
 }

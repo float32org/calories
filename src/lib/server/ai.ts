@@ -68,7 +68,7 @@ export async function analyzeMealFromImage(
 	mimeType: string
 ): Promise<MealAnalysis> {
 	const { object } = await generateObject({
-		model: openrouter.chat('google/gemini-3-pro-preview'),
+		model: openrouter.chat('google/gemini-2.5-flash-preview-09-2025'),
 		schema: mealAnalysisSchema,
 		messages: [
 			{
@@ -146,7 +146,7 @@ Calculate the optimal daily calorie target for ${isLosing ? 'safe, sustainable w
 Provide a realistic timeline and brief explanation.`;
 
 	const { object } = await generateObject({
-		model: openrouter.chat('google/gemini-3-pro-preview'),
+		model: openrouter.chat('google/gemini-2.5-flash-preview-09-2025'),
 		schema: calorieOptimizationSchema,
 		messages: [
 			{ role: 'system', content: CALORIE_SYSTEM_PROMPT },

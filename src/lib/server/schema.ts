@@ -120,11 +120,6 @@ export const mealLogs = pgTable(
 		protein: integer('protein'),
 		carbs: integer('carbs'),
 		fat: integer('fat'),
-		sodium: integer('sodium'),
-		cholesterol: integer('cholesterol'),
-		fiber: integer('fiber'),
-		sugar: integer('sugar'),
-		mealType: text('meal_type'),
 		image: text('image'),
 		mealTime: timestamp('meal_time').notNull(),
 		createdAt: timestamp('created_at')
