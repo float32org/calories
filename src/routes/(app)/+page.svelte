@@ -2,13 +2,16 @@
 	import AddMealDialog from '$lib/components/dialog/dialog-add-meal.svelte';
 	import DatePickerDialog from '$lib/components/dialog/dialog-date-picker.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { cn } from '$lib/utils/ui';
+	import { Card, CardContent } from '$lib/components/ui/card';
+	import { ChartContainer, type ChartConfig } from '$lib/components/ui/chart';
+	import { formatDate, getDisplayDate } from '$lib/utils/format';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import UtensilsIcon from '@lucide/svelte/icons/utensils';
+	import { ArcChart, Text } from 'layerchart';
 	import { SvelteDate, SvelteMap } from 'svelte/reactivity';
 
 	type Meal = {
@@ -30,7 +33,7 @@
 			name: 'Oatmeal',
 			calories: 350,
 			image: null,
-			date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+			date: formatDate(new Date(Date.now() - 86400000)),
 			timestamp: Date.now() - 86400000
 		},
 		{
@@ -38,31 +41,12 @@
 			name: 'Salad',
 			calories: 400,
 			image: null,
-			date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+			date: formatDate(new Date(Date.now() - 86400000)),
 			timestamp: Date.now() - 86300000
 		}
 	]);
 
 	const dailyGoal = 2200;
-
-	const formatDate = (date: Date) => {
-		return date.toISOString().split('T')[0];
-	};
-
-	const getDisplayDate = (date: Date) => {
-		const today = new SvelteDate();
-		const yesterday = new SvelteDate(today);
-		yesterday.setDate(yesterday.getDate() - 1);
-
-		const dString = formatDate(date);
-		const tString = formatDate(today);
-		const yString = formatDate(yesterday);
-
-		if (dString === tString) return 'Today';
-		if (dString === yString) return 'Yesterday';
-
-		return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-	};
 
 	let currentDayMeals = $derived.by(() => {
 		const dateStr = formatDate(selectedDate);
@@ -74,8 +58,22 @@
 	});
 
 	let remainingCalories = $derived(dailyGoal - totalCalories);
-	let progressPercentage = $derived(Math.min(100, Math.max(0, (totalCalories / dailyGoal) * 100)));
 	let isOver = $derived(totalCalories > dailyGoal);
+
+	let chartData = $derived([
+		{
+			name: 'calories',
+			value: totalCalories,
+			fill: isOver ? 'var(--destructive)' : 'var(--primary)'
+		}
+	]);
+
+	const chartConfig = {
+		calories: {
+			label: 'Calories',
+			color: 'var(--primary)'
+		}
+	} satisfies ChartConfig;
 
 	let history = $derived.by(() => {
 		const historyMap = new SvelteMap<string, number>();
@@ -155,42 +153,57 @@
 
 	<main class="mx-auto max-w-md px-4 pt-6">
 		<div class="animate-in fade-in zoom-in duration-500 mb-8">
-			<div class="relative mx-auto flex h-56 w-56 items-center justify-center">
-				<svg class="h-full w-full -rotate-90 transform">
-					<circle
-						cx="112"
-						cy="112"
-						r="96"
-						stroke="currentColor"
-						stroke-width="14"
-						fill="transparent"
-						class="text-muted/50 stroke-current"
-					/>
-					<circle
-						cx="112"
-						cy="112"
-						r="96"
-						stroke="currentColor"
-						stroke-width="14"
-						fill="transparent"
-						stroke-dasharray={2 * Math.PI * 96}
-						stroke-dashoffset={2 * Math.PI * 96 - (progressPercentage / 100) * 2 * Math.PI * 96}
-						class={cn(
-							'transition-all duration-1000 ease-out',
-							isOver ? 'text-destructive' : 'text-primary'
-						)}
-						stroke-linecap="round"
-					/>
-				</svg>
-				<div class="absolute flex flex-col items-center gap-1">
-					<span class="text-foreground text-5xl font-bold tracking-tighter">
-						{totalCalories}
-					</span>
-					<span class="text-muted-foreground text-xs font-bold uppercase tracking-widest">
-						/ {dailyGoal} kcal
-					</span>
-				</div>
-			</div>
+			<Card class="bg-transparent border-none shadow-none">
+				<CardContent class="p-0">
+					<ChartContainer
+						config={chartConfig}
+						class="mx-auto aspect-square h-64 w-64 max-h-[250px]"
+					>
+						<ArcChart
+							data={chartData}
+							series={chartData.map((d) => ({
+								key: d.name,
+								color: d.fill,
+								data: [d]
+							}))}
+							label="name"
+							value="value"
+							outerRadius={88}
+							innerRadius={66}
+							trackOuterRadius={83}
+							trackInnerRadius={72}
+							padding={0}
+							range={[90, -270]}
+							maxValue={dailyGoal}
+							props={{
+								arc: { track: { fill: 'var(--muted)' }, motion: 'tween' },
+								tooltip: { context: { hideDelay: 350 } }
+							}}
+							tooltip={false}
+						>
+							{#snippet belowMarks()}
+								<circle cx="0" cy="0" r="80" class="fill-background" />
+							{/snippet}
+							{#snippet aboveMarks()}
+								<Text
+									value={String(totalCalories)}
+									textAnchor="middle"
+									verticalAnchor="middle"
+									class="fill-foreground text-5xl! font-bold tracking-tighter"
+									dy={4}
+								/>
+								<Text
+									value={`/ ${dailyGoal} kcal`}
+									textAnchor="middle"
+									verticalAnchor="middle"
+									class="fill-muted-foreground! text-[10px] font-bold uppercase tracking-widest"
+									dy={26}
+								/>
+							{/snippet}
+						</ArcChart>
+					</ChartContainer>
+				</CardContent>
+			</Card>
 
 			<div class="mt-8 grid grid-cols-3 gap-4 text-center">
 				<div class="bg-card/50 rounded-2xl p-3 backdrop-blur-sm">
