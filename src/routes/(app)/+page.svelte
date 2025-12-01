@@ -4,6 +4,7 @@
 	import LogWeightDialog from '$lib/components/dialog/dialog-log-weight.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent } from '$lib/components/ui/card';
+	import { addMeal, deleteMeal, getMeals } from '$lib/remote/meals.remote';
 	import { formatDate, getDisplayDate } from '$lib/utils/format';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
@@ -14,20 +15,10 @@
 	import TrendingDownIcon from '@lucide/svelte/icons/trending-down';
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
 	import UtensilsIcon from '@lucide/svelte/icons/utensils';
+	import { toast } from 'svelte-sonner';
 	import { SvelteDate, SvelteMap } from 'svelte/reactivity';
 
-	type Meal = {
-		id: string;
-		name: string;
-		calories: number;
-		protein?: number;
-		carbs?: number;
-		fat?: number;
-		image: string | null;
-		date: string;
-		timestamp: number;
-	};
-
+	// TODO: Load from user settings
 	let settings = $state({
 		calorieGoal: 2200,
 		weightGoal: 165,
@@ -40,34 +31,15 @@
 	let isDatePickerOpen = $state(false);
 	let isWeightModalOpen = $state(false);
 
-	let meals = $state<Meal[]>([
-		{
-			id: 'prev-1',
-			name: 'Oatmeal & Berries',
-			calories: 350,
-			protein: 12,
-			carbs: 45,
-			fat: 6,
-			image: null,
-			date: formatDate(new Date(Date.now() - 86400000)),
-			timestamp: Date.now() - 86400000
-		},
-		{
-			id: 'prev-2',
-			name: 'Chicken Salad',
-			calories: 450,
-			protein: 45,
-			carbs: 10,
-			fat: 20,
-			image: null,
-			date: formatDate(new Date(Date.now() - 86400000)),
-			timestamp: Date.now() - 86300000
-		}
-	]);
+	// Fetch meals from the server using remote function
+	const meals = getMeals();
 
 	let currentDayMeals = $derived.by(() => {
+		if (!meals.current) return [];
 		const dateStr = formatDate(selectedDate);
-		return meals.filter((m) => m.date === dateStr).sort((a, b) => b.timestamp - a.timestamp);
+		return meals.current
+			.filter((m) => m.date === dateStr)
+			.sort((a, b) => b.timestamp - a.timestamp);
 	});
 
 	let totalCalories = $derived.by(() => {
@@ -78,8 +50,9 @@
 	let isOver = $derived(totalCalories > settings.calorieGoal);
 
 	let history = $derived.by(() => {
+		if (!meals.current) return [];
 		const historyMap = new SvelteMap<string, number>();
-		meals.forEach((m) => {
+		meals.current.forEach((m) => {
 			const current = historyMap.get(m.date) || 0;
 			historyMap.set(m.date, current + m.calories);
 		});
@@ -97,22 +70,48 @@
 		selectedDate.setDate(selectedDate.getDate() + days);
 	}
 
-	function handleAddMeal(meal: { name: string; calories: number; image: string | null }) {
-		const newMeal: Meal = {
-			id: Math.random().toString(36).substr(2, 9),
-			...meal,
-			date: formatDate(selectedDate),
-			timestamp: Date.now()
-		};
-		meals = [newMeal, ...meals];
+	type MealInput = {
+		name: string;
+		calories: number;
+		protein?: number;
+		carbs?: number;
+		fat?: number;
+		imageKey?: string;
+		imageUrl?: string;
+	};
+
+	async function handleAddMeal(meal: MealInput) {
+		try {
+			await addMeal({
+				name: meal.name,
+				calories: meal.calories,
+				protein: meal.protein,
+				carbs: meal.carbs,
+				fat: meal.fat,
+				imageKey: meal.imageKey,
+				mealTime: selectedDate.toISOString()
+			}).updates(meals);
+
+			toast.success('Meal logged!');
+		} catch (err) {
+			console.error('Failed to add meal:', err);
+			toast.error('Failed to log meal');
+		}
 	}
 
-	function handleDeleteMeal(id: string) {
-		meals = meals.filter((m) => m.id !== id);
+	async function handleDeleteMeal(id: string) {
+		try {
+			await deleteMeal(id).updates(meals);
+			toast.success('Meal deleted');
+		} catch (err) {
+			console.error('Failed to delete meal:', err);
+			toast.error('Failed to delete meal');
+		}
 	}
 
 	function handleUpdateWeight(newWeight: number) {
 		settings.currentWeight = newWeight;
+		// TODO: Save to database
 	}
 </script>
 
@@ -264,7 +263,11 @@
 				</h2>
 			</div>
 
-			{#if currentDayMeals.length === 0}
+			{#if meals.loading}
+				<div class="flex justify-center py-12">
+					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+				</div>
+			{:else if currentDayMeals.length === 0}
 				<div
 					class="bg-muted/30 border-dashed border-2 border-muted rounded-3xl py-16 flex flex-col items-center justify-center text-center"
 				>
