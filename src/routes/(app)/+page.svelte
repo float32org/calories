@@ -199,34 +199,36 @@
 					</div>
 
 					<!-- Quick Actions -->
-					<div class="grid grid-cols-2 gap-4">
+					<div class="grid grid-cols-2 gap-3">
 						<button
-							class="bg-muted/30 hover:bg-muted/50 group flex flex-col items-start gap-2 rounded-2xl p-3 text-left transition-colors"
+							class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
 							onclick={() => (isSettingsOpen = true)}
 						>
-							<div class="bg-background p-2 rounded-full shadow-sm">
+							<div class="bg-background shrink-0 rounded-full p-2 shadow-sm">
 								<SettingsIcon
 									class="text-muted-foreground group-hover:text-foreground size-4 transition-colors"
 								/>
 							</div>
-							<div>
-								<span class="block text-sm font-medium">Settings</span>
-								<span class="text-muted-foreground text-xs">{calorieGoal} kcal goal</span>
+							<div class="min-w-0 flex-1">
+								<span class="block text-xs font-bold text-foreground">Settings</span>
+								<span class="block truncate text-[10px] font-medium text-muted-foreground">
+									{calorieGoal} kcal goal
+								</span>
 							</div>
 						</button>
 
 						<button
-							class="bg-muted/30 hover:bg-muted/50 group flex flex-col items-start gap-2 rounded-2xl p-3 text-left transition-colors"
+							class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
 							onclick={() => (isWeightModalOpen = true)}
 						>
-							<div class="bg-background p-2 rounded-full shadow-sm">
+							<div class="bg-background shrink-0 rounded-full p-2 shadow-sm">
 								<UtensilsIcon
 									class="text-muted-foreground group-hover:text-foreground size-4 transition-colors"
 								/>
 							</div>
-							<div>
-								<span class="block text-sm font-medium">Weight</span>
-								<span class="text-muted-foreground text-xs">
+							<div class="min-w-0 flex-1">
+								<span class="block text-xs font-bold text-foreground">Weight</span>
+								<span class="block truncate text-[10px] font-medium text-muted-foreground">
 									{currentWeight ? `${currentWeight} ${weightUnit}` : 'Log weight'}
 								</span>
 							</div>
