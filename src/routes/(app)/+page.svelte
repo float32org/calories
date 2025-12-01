@@ -47,9 +47,7 @@
 
 	let currentDayMeals = $derived.by(() => {
 		const dateStr = formatDate(selectedDate);
-		return meals
-			.filter((m) => m.date === dateStr)
-			.sort((a, b) => b.timestamp - a.timestamp);
+		return meals.filter((m) => m.date === dateStr).sort((a, b) => b.timestamp - a.timestamp);
 	});
 
 	let calorieGoal = $derived(settings?.calorieGoal ?? 2200);
@@ -142,7 +140,6 @@
 			toast.error('Failed to log weight');
 		}
 	}
-
 </script>
 
 <svelte:head>
