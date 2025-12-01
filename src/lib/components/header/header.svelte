@@ -7,9 +7,7 @@
 	let { user }: { user: User } = $props();
 </script>
 
-<header
-	class="bg-background/80 sticky top-0 z-50 w-full px-4 backdrop-blur-sm transition-all border-b border-border/10"
->
+<header class="bg-background sticky top-0 z-50 w-full px-4 transition-all">
 	<div class="flex h-14 w-full items-center justify-between gap-4">
 		<div class="flex items-center gap-4">
 			<a href={resolve('/')} class="flex items-center gap-2 font-medium">

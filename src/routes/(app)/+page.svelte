@@ -71,6 +71,10 @@
 		}));
 	});
 
+	let totalProtein = $derived(currentDayMeals.reduce((acc, m) => acc + (m.protein || 0), 0));
+	let totalCarbs = $derived(currentDayMeals.reduce((acc, m) => acc + (m.carbs || 0), 0));
+	let totalFat = $derived(currentDayMeals.reduce((acc, m) => acc + (m.fat || 0), 0));
+
 	function handleDateChange(days: number) {
 		selectedDate.setDate(selectedDate.getDate() + days);
 	}
@@ -185,6 +189,39 @@
 							size={240}
 							thickness={20}
 						/>
+
+						{#if totalProtein > 0 || totalCarbs > 0 || totalFat > 0}
+							<div class="mt-6 flex items-center gap-8" transition:slide>
+								<div class="flex flex-col items-center">
+									<span class="text-lg font-bold text-blue-500 dark:text-blue-400"
+										>{totalProtein}g</span
+									>
+									<span
+										class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
+										>Protein</span
+									>
+								</div>
+								<div class="h-8 w-px bg-border/50"></div>
+								<div class="flex flex-col items-center">
+									<span class="text-lg font-bold text-amber-500 dark:text-amber-400"
+										>{totalCarbs}g</span
+									>
+									<span
+										class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
+										>Carbs</span
+									>
+								</div>
+								<div class="h-8 w-px bg-border/50"></div>
+								<div class="flex flex-col items-center">
+									<span class="text-lg font-bold text-rose-500 dark:text-rose-400">{totalFat}g</span
+									>
+									<span
+										class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
+										>Fat</span
+									>
+								</div>
+							</div>
+						{/if}
 					</div>
 					<div class="grid grid-cols-2 gap-3">
 						<button
