@@ -2,8 +2,8 @@
 	import AddMealDialog from '$lib/components/dialog/dialog-add-meal.svelte';
 	import DatePickerDialog from '$lib/components/dialog/dialog-date-picker.svelte';
 	import LogWeightDialog from '$lib/components/dialog/dialog-log-weight.svelte';
+	import SettingsDialog from '$lib/components/dialog/dialog-settings.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Card, CardContent } from '$lib/components/ui/card';
 	import { addMeal, deleteMeal, getMeals } from '$lib/remote/meals.remote';
 	import { getLatestWeight, getSettings, logWeight } from '$lib/remote/weight.remote';
 	import { formatDate, getDisplayDate } from '$lib/utils/format';
@@ -12,6 +12,7 @@
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import ScaleIcon from '@lucide/svelte/icons/scale';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import TrendingDownIcon from '@lucide/svelte/icons/trending-down';
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
@@ -23,6 +24,7 @@
 	let isAddModalOpen = $state(false);
 	let isDatePickerOpen = $state(false);
 	let isWeightModalOpen = $state(false);
+	let isSettingsOpen = $state(false);
 
 	const meals = getMeals();
 	const settings = getSettings();
@@ -119,6 +121,14 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Calories</title>
+	<meta
+		name="description"
+		content="Track your daily calories and nutrition with AI-powered meal analysis"
+	/>
+</svelte:head>
+
 <div class="bg-muted/20 min-h-screen pb-32 font-sans pt-14">
 	<header
 		class="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-20 px-4 pt-4 pb-2 backdrop-blur-xl border-b border-border/5"
@@ -166,16 +176,20 @@
 
 	<main class="mx-auto max-w-md px-4 pt-6 space-y-8">
 		<div class="animate-in fade-in zoom-in duration-500 space-y-6">
-			<Card
-				class="bg-background/50 border-none shadow-sm backdrop-blur-sm overflow-visible relative"
+			<button
+				class="w-full text-left bg-background/50 rounded-xl shadow-sm backdrop-blur-sm overflow-visible relative group hover:bg-accent/30 transition-colors"
+				onclick={() => (isSettingsOpen = true)}
 			>
-				<CardContent class="p-6 pb-2">
+				<div class="p-6 pb-4">
 					<div class="flex items-center justify-between mb-2">
 						<div>
 							<h3 class="text-sm font-medium text-muted-foreground">Calories</h3>
 						</div>
-						<div class="text-right">
+						<div class="text-right flex items-center gap-2">
 							<div class="text-sm font-medium text-muted-foreground">Goal</div>
+							<SettingsIcon
+								class="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+							/>
 						</div>
 					</div>
 
@@ -205,8 +219,8 @@
 						<span>0</span>
 						<span>{remainingCalories} left</span>
 					</div>
-				</CardContent>
-			</Card>
+				</div>
+			</button>
 
 			<div class="grid grid-cols-2 gap-4">
 				<button
@@ -364,5 +378,13 @@
 		onSave={handleLogWeight}
 		currentWeight={currentWeight ?? 0}
 		unit={weightUnit}
+	/>
+	<SettingsDialog
+		bind:open={isSettingsOpen}
+		currentCalorieGoal={calorieGoal}
+		currentWeightGoal={weightGoal}
+		{currentWeight}
+		{weightUnit}
+		onSave={() => settings.refresh()}
 	/>
 </div>

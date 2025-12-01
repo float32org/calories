@@ -1,4 +1,5 @@
 import { command, getRequestEvent, query } from '$app/server';
+import { optimizeCaloriesWithAI } from '$lib/server/ai';
 import { db } from '$lib/server/db';
 import { settings, weightLogs } from '$lib/server/schema';
 import { error } from '@sveltejs/kit';
@@ -147,5 +148,24 @@ export const updateSettings = command(
 			weightGoal: updated.weightGoal,
 			weightUnit: updated.weightUnit
 		};
+	}
+);
+
+export const optimizeCalories = command(
+	z.object({
+		currentWeight: z.number().positive(),
+		goalWeight: z.number().positive(),
+		unit: z.string()
+	}),
+	async (input) => {
+		const { locals } = getRequestEvent();
+
+		if (!locals.session || !locals.user) {
+			return error(401, 'Unauthorized');
+		}
+
+		const result = await optimizeCaloriesWithAI(input.currentWeight, input.goalWeight, input.unit);
+
+		return result;
 	}
 );
