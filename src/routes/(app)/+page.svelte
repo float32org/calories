@@ -243,7 +243,7 @@
 						>
 					</h2>
 
-					<div class="-mr-2 flex-1 overflow-y-auto pr-2">
+					<div class="-mr-2 flex-1 overflow-y-auto pr-2 no-scrollbar">
 						{#if meals.loading}
 							<div class="flex justify-center py-8">
 								<div
@@ -288,23 +288,24 @@
 														</div>
 													{/if}
 												</div>
-												<!-- Color Indicator (Subtle Ring) -->
-												<div
-													class="absolute inset-0 rounded-2xl border-2 border-transparent opacity-60"
-													style="border-left-color: var(--chart-{(i % 5) + 1})"
-												></div>
 											</div>
 
 											<!-- Content -->
 											<div class="min-w-0 flex-1 space-y-1 pt-0.5">
 												<div class="flex items-start justify-between gap-4">
-													<div>
-														<h3 class="font-bold leading-tight text-foreground line-clamp-2">
-															{meal.name}
-														</h3>
-														<p class="text-xs font-medium text-muted-foreground/80">
-															{formatTime(meal.timestamp)}
-														</p>
+													<div class="flex items-start gap-2">
+														<div
+															class="mt-1.5 h-2 w-2 shrink-0 rounded-full shadow-sm ring-1 ring-white/10"
+															style="background-color: var(--chart-{(i % 5) + 1})"
+														></div>
+														<div>
+															<h3 class="font-bold leading-tight text-foreground line-clamp-2">
+																{meal.name}
+															</h3>
+															<p class="text-xs font-medium text-muted-foreground/80">
+																{formatTime(meal.timestamp)}
+															</p>
+														</div>
 													</div>
 
 													<!-- Menu Trigger (Mobile & Desktop) -->
