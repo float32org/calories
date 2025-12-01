@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import { optimizeCalories, updateSettings } from '$lib/remote/weight.remote';
-	import FlameIcon from '@lucide/svelte/icons/flame';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
 	import ScaleIcon from '@lucide/svelte/icons/scale';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
-	import TargetIcon from '@lucide/svelte/icons/target';
 	import { toast } from 'svelte-sonner';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
@@ -106,73 +104,62 @@
 	<div class="py-4 space-y-6">
 		<!-- Current Stats -->
 		{#if currentWeight}
-			<div class="bg-muted/30 rounded-xl p-4 flex items-center justify-between">
-				<div class="flex items-center gap-3">
-					<div class="bg-indigo-500/10 p-2 rounded-lg">
-						<ScaleIcon class="size-5 text-indigo-500" />
-					</div>
-					<div>
-						<p class="text-xs text-muted-foreground font-medium">Current Weight</p>
-						<p class="text-lg font-bold">{currentWeight} {weightUnit}</p>
-					</div>
+			<div class="bg-muted/30 border border-muted rounded-lg p-3 flex items-center gap-3">
+				<div class="bg-background p-2 rounded-md shadow-sm">
+					<ScaleIcon class="size-4 text-muted-foreground" />
+				</div>
+				<div>
+					<p class="text-xs text-muted-foreground font-medium">Current Weight</p>
+					<p class="text-sm font-bold">{currentWeight} {weightUnit}</p>
 				</div>
 			</div>
 		{/if}
 
 		<!-- Goal Weight -->
 		<div class="space-y-2">
-			<Label for="weightGoal" class="flex items-center gap-2">
-				<TargetIcon class="size-4 text-muted-foreground" />
-				Goal Weight
-			</Label>
-			<div class="relative">
-				<Input
+			<Label for="weightGoal">Goal Weight</Label>
+			<InputGroup.Root>
+				<InputGroup.Input
 					id="weightGoal"
 					type="number"
 					step="0.1"
 					placeholder="Enter goal weight"
 					bind:value={weightGoal}
-					class="h-12 text-lg pr-12"
 				/>
-				<span class="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-					{weightUnit}
-				</span>
-			</div>
+				<InputGroup.Addon>
+					<InputGroup.Text>{weightUnit}</InputGroup.Text>
+				</InputGroup.Addon>
+			</InputGroup.Root>
 		</div>
 
 		<!-- AI Optimize Button -->
 		{#if currentWeight && weightGoal}
-			<Button
-				variant="outline"
-				class="w-full h-12 border-dashed border-2 hover:border-primary hover:bg-primary/5"
-				onclick={handleOptimize}
-				disabled={optimizing}
-			>
+			<Button variant="outline" class="w-full" onclick={handleOptimize} disabled={optimizing}>
 				{#if optimizing}
-					<Loader2Icon class="mr-2 size-5 animate-spin" />
+					<Loader2Icon class="mr-2 size-4 animate-spin" />
 					Calculating...
 				{:else}
-					<SparklesIcon class="mr-2 size-5 text-primary" />
-					<span class="font-medium">Calculate with AI</span>
+					<SparklesIcon class="mr-2 size-4 text-primary" />
+					Calculate with AI
 				{/if}
 			</Button>
 		{/if}
 
 		<!-- AI Result -->
 		{#if aiResult}
-			<div class="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+			<div class="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
 				<div class="flex items-center gap-2">
-					<SparklesIcon class="size-4 text-primary" />
-					<span class="text-sm font-bold text-primary">AI Recommendation</span>
+					<SparklesIcon class="size-3 text-primary" />
+					<span class="text-xs font-bold text-primary">AI Recommendation</span>
 				</div>
-				<div class="space-y-2">
+				<div class="space-y-1">
 					<div class="flex justify-between items-baseline">
-						<span class="text-sm text-muted-foreground">Daily Calories</span>
-						<span class="text-2xl font-bold">{aiResult.calories}</span>
+						<span class="text-xs text-muted-foreground">Daily Calories</span>
+						<span class="text-lg font-bold">{aiResult.calories}</span>
 					</div>
 					<div class="flex justify-between items-baseline">
-						<span class="text-sm text-muted-foreground">Timeline</span>
-						<span class="font-medium text-emerald-600">{aiResult.timeline}</span>
+						<span class="text-xs text-muted-foreground">Timeline</span>
+						<span class="text-sm font-medium text-emerald-600">{aiResult.timeline}</span>
 					</div>
 				</div>
 				<p class="text-xs text-muted-foreground leading-relaxed">{aiResult.explanation}</p>
@@ -181,22 +168,18 @@
 
 		<!-- Calorie Goal -->
 		<div class="space-y-2">
-			<Label for="calorieGoal" class="flex items-center gap-2">
-				<FlameIcon class="size-4 text-orange-500" />
-				Daily Calorie Goal
-			</Label>
-			<div class="relative">
-				<Input
+			<Label for="calorieGoal">Daily Calorie Goal</Label>
+			<InputGroup.Root>
+				<InputGroup.Input
 					id="calorieGoal"
 					type="number"
 					placeholder="2200"
 					bind:value={calorieGoal}
-					class="h-14 text-2xl font-bold pr-16"
 				/>
-				<span class="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-					kcal
-				</span>
-			</div>
+				<InputGroup.Addon>
+					<InputGroup.Text>kcal</InputGroup.Text>
+				</InputGroup.Addon>
+			</InputGroup.Root>
 			{#if !aiResult}
 				<p class="text-xs text-muted-foreground">
 					Or enter your goal weight above and let AI calculate the optimal calories.
@@ -205,9 +188,9 @@
 		</div>
 
 		<!-- Save Button -->
-		<Button onclick={handleSave} disabled={!calorieGoal || saving} class="w-full h-12 text-base">
+		<Button onclick={handleSave} disabled={!calorieGoal || saving} class="w-full">
 			{#if saving}
-				<Loader2Icon class="mr-2 size-5 animate-spin" />
+				<Loader2Icon class="mr-2 size-4 animate-spin" />
 				Saving...
 			{:else}
 				Save Settings

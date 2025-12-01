@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import { Label } from '$lib/components/ui/label';
 	import { analyzeMealImage } from '$lib/remote/meals.remote';
 	import CameraIcon from '@lucide/svelte/icons/camera';
 	import CheckIcon from '@lucide/svelte/icons/check';
-	import FlameIcon from '@lucide/svelte/icons/flame';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import XIcon from '@lucide/svelte/icons/x';
@@ -61,7 +60,6 @@
 			const reader = new FileReader();
 			reader.onload = () => {
 				const result = reader.result as string;
-				// Return just the base64 part (remove data:image/...;base64, prefix)
 				resolve(result);
 			};
 			reader.onerror = reject;
@@ -141,12 +139,12 @@
 	subtitle="Snap a photo for instant AI analysis."
 	contentClass="sm:max-w-md"
 >
-	<div class="space-y-5 py-4">
+	<div class="space-y-6 py-4">
 		<!-- Image Upload Area -->
 		<div class="relative">
 			<button
 				type="button"
-				class="border-muted-foreground/25 hover:border-primary/50 bg-muted/30 hover:bg-muted/50 relative flex aspect-4/3 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-all"
+				class="border-muted-foreground/20 hover:border-primary/50 bg-muted/20 hover:bg-muted/40 relative flex aspect-video w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-all"
 				onclick={() => fileInput?.click()}
 				disabled={analyzing}
 			>
@@ -154,20 +152,17 @@
 					<img src={imagePreview} alt="Preview" class="h-full w-full object-cover" />
 					{#if analyzed}
 						<div
-							class="absolute top-3 left-3 bg-emerald-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1"
+							class="absolute top-3 left-3 bg-emerald-500 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"
 						>
 							<SparklesIcon class="size-3" />
 							AI Analyzed
 						</div>
 					{/if}
 				{:else}
-					<div
-						class="bg-primary/10 text-primary mb-3 flex h-14 w-14 items-center justify-center rounded-full"
-					>
-						<CameraIcon class="size-7" />
+					<div class="bg-background p-4 rounded-full shadow-sm mb-2">
+						<CameraIcon class="size-6 text-muted-foreground" />
 					</div>
-					<p class="text-foreground font-medium">Take a photo</p>
-					<p class="text-muted-foreground text-xs mt-1">AI will analyze nutrition instantly</p>
+					<p class="text-sm font-medium">Take a photo</p>
 				{/if}
 
 				{#if analyzing}
@@ -175,11 +170,9 @@
 						class="bg-background/90 absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm"
 					>
 						<div class="relative">
-							<Loader2Icon class="text-primary size-10 animate-spin" />
-							<SparklesIcon class="text-primary absolute -top-1 -right-1 size-4 animate-pulse" />
+							<Loader2Icon class="text-primary size-8 animate-spin" />
 						</div>
-						<p class="text-foreground mt-4 font-medium">Analyzing with AI...</p>
-						<p class="text-muted-foreground text-xs mt-1">Estimating nutrition facts</p>
+						<p class="text-sm font-medium mt-3">Analyzing...</p>
 					</div>
 				{/if}
 
@@ -196,10 +189,10 @@
 			{#if imagePreview && !analyzing}
 				<button
 					type="button"
-					class="absolute top-2 right-2 bg-background/80 hover:bg-destructive hover:text-white p-1.5 rounded-full transition-colors"
+					class="absolute -top-2 -right-2 bg-background shadow-sm border p-1.5 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-colors"
 					onclick={clearImage}
 				>
-					<XIcon class="size-4" />
+					<XIcon class="size-3" />
 				</button>
 			{/if}
 		</div>
@@ -208,87 +201,81 @@
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label for="name">Meal Name</Label>
-				<Input
-					id="name"
-					type="text"
-					placeholder="e.g., Grilled Chicken Salad"
-					bind:value={name}
-					class="text-base h-12"
-				/>
+				<InputGroup.Root>
+					<InputGroup.Input
+						id="name"
+						type="text"
+						placeholder="e.g., Grilled Chicken Salad"
+						bind:value={name}
+					/>
+				</InputGroup.Root>
 			</div>
 
 			<div class="space-y-2">
 				<Label for="calories">Calories</Label>
-				<div class="relative">
-					<Input
+				<InputGroup.Root>
+					<InputGroup.Input
 						id="calories"
 						type="number"
 						inputmode="numeric"
 						placeholder="0"
 						bind:value={calories}
-						class="text-xl font-bold h-14 pr-16"
 					/>
-					<div
-						class="text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none"
-					>
-						<FlameIcon class="size-5 {calories ? 'text-orange-500' : ''}" />
-						<span class="text-sm font-medium">kcal</span>
-					</div>
-				</div>
+					<InputGroup.Addon>
+						<InputGroup.Text>kcal</InputGroup.Text>
+					</InputGroup.Addon>
+				</InputGroup.Root>
 			</div>
 
 			<!-- Macros -->
 			<div class="grid grid-cols-3 gap-3">
-				<div class="space-y-1.5">
+				<div class="space-y-2">
 					<Label for="protein" class="text-xs text-muted-foreground">Protein</Label>
-					<div class="relative">
-						<Input
+					<InputGroup.Root>
+						<InputGroup.Input
 							id="protein"
 							type="number"
 							inputmode="numeric"
 							placeholder="0"
 							bind:value={protein}
-							class="text-center pr-6"
+							class="text-center"
 						/>
-						<span
-							class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none"
-							>g</span
-						>
-					</div>
+						<InputGroup.Addon>
+							<InputGroup.Text class="px-2">g</InputGroup.Text>
+						</InputGroup.Addon>
+					</InputGroup.Root>
 				</div>
-				<div class="space-y-1.5">
+				<div class="space-y-2">
 					<Label for="carbs" class="text-xs text-muted-foreground">Carbs</Label>
-					<div class="relative">
-						<Input
+					<InputGroup.Root>
+						<InputGroup.Input
 							id="carbs"
 							type="number"
 							inputmode="numeric"
 							placeholder="0"
 							bind:value={carbs}
-							class="text-center pr-6"
+							class="text-center"
 						/>
-						<span
-							class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none"
-							>g</span
-						>
-					</div>
+						<InputGroup.Addon>
+							<InputGroup.Text class="px-2">g</InputGroup.Text>
+						</InputGroup.Addon>
+					</InputGroup.Root>
 				</div>
-				<div class="space-y-1.5">
+				<div class="space-y-2">
 					<Label for="fat" class="text-xs text-muted-foreground">Fat</Label>
-					<div class="relative">
-						<Input
+					<InputGroup.Root>
+						<InputGroup.Input
 							id="fat"
 							type="number"
 							inputmode="numeric"
 							placeholder="0"
 							bind:value={fat}
-							class="text-center pr-6"
+							class="text-center"
 						/>
-						<span
-							class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none"
-							>g</span
-						>
-					</div>
+						<InputGroup.Addon>
+							<InputGroup.Text class="px-2">g</InputGroup.Text>
+						</InputGroup.Addon>
+					</InputGroup.Root>
 				</div>
 			</div>
 		</div>
@@ -297,7 +284,7 @@
 		<Button
 			onclick={handleSubmit}
 			disabled={!name || !calories || analyzing}
-			class="w-full h-14 text-base font-bold"
+			class="w-full text-base font-bold"
 		>
 			{#if analyzing}
 				<Loader2Icon class="mr-2 size-5 animate-spin" />
