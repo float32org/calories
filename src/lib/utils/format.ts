@@ -28,3 +28,10 @@ export function getDisplayDate(date: Date): string {
 
 	return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
+export function formatTime(timestamp: number) {
+	return new Date(timestamp).toLocaleTimeString([], {
+		hour: 'numeric',
+		minute: '2-digit'
+	});
+}

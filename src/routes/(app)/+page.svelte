@@ -9,7 +9,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { addMeal, deleteMeal, getMeals, updateMeal } from '$lib/remote/meals.remote';
 	import { getLatestWeight, getSettings, logWeight } from '$lib/remote/weight.remote';
-	import { formatDate, getDisplayDate } from '$lib/utils/format';
+	import { formatDate, formatTime, getDisplayDate } from '$lib/utils/format';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
@@ -142,12 +142,7 @@
 			toast.error('Failed to log weight');
 		}
 	}
-	function formatTime(timestamp: number) {
-		return new Date(timestamp).toLocaleTimeString([], {
-			hour: 'numeric',
-			minute: '2-digit'
-		});
-	}
+
 </script>
 
 <svelte:head>
@@ -156,12 +151,10 @@
 
 <div class="flex h-full flex-col bg-background">
 	<div class="mx-auto flex h-full w-full max-w-md flex-col overflow-hidden">
-		<!-- Minimal Header -->
 		<header class="flex shrink-0 items-center justify-between px-4 py-2">
 			<Button variant="ghost" size="icon" class="rounded-full" onclick={() => handleDateChange(-1)}>
 				<ChevronLeftIcon class="size-5 text-muted-foreground" />
 			</Button>
-
 			<button class="flex flex-col items-center" onclick={() => (isDatePickerOpen = true)}>
 				<span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
 					{selectedDate.getFullYear()}
@@ -170,7 +163,6 @@
 					{getDisplayDate(selectedDate)}
 				</span>
 			</button>
-
 			<Button
 				variant="ghost"
 				size="icon"
@@ -184,9 +176,7 @@
 
 		<div class="flex-1 overflow-hidden px-6 pb-20">
 			<div class="flex h-full flex-col gap-6">
-				<!-- Top Section: Chart & Quick Actions -->
 				<div class="flex shrink-0 flex-col gap-6">
-					<!-- Chart Section -->
 					<div class="flex flex-col items-center justify-center py-2">
 						<CalorieRadialChart
 							meals={currentDayMeals.map((m) => ({
@@ -199,8 +189,6 @@
 							thickness={20}
 						/>
 					</div>
-
-					<!-- Quick Actions -->
 					<div class="grid grid-cols-2 gap-3">
 						<button
 							class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
@@ -218,7 +206,6 @@
 								</span>
 							</div>
 						</button>
-
 						<button
 							class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
 							onclick={() => (isWeightModalOpen = true)}
@@ -237,8 +224,6 @@
 						</button>
 					</div>
 				</div>
-
-				<!-- Meal List - Scrollable Area -->
 				<div class="flex min-h-0 flex-1 flex-col gap-2">
 					<h2 class="flex shrink-0 items-center gap-2 text-lg font-bold">
 						Meals
@@ -246,7 +231,6 @@
 							>{currentDayMeals.length}</span
 						>
 					</h2>
-
 					<div class="-mr-2 flex-1 overflow-y-auto pr-2 no-scrollbar">
 						{#if currentDayMeals.length === 0}
 							<div
@@ -267,9 +251,7 @@
 										transition:slide={{ duration: 200 }}
 										class="group relative flex flex-col gap-3 rounded-3xl bg-card/50 p-4 transition-all hover:bg-muted/50 sm:flex-row sm:items-center sm:gap-6"
 									>
-										<!-- Main Row -->
 										<div class="flex flex-1 items-start gap-4">
-											<!-- Image -->
 											<div class="relative shrink-0">
 												<div
 													class="h-16 w-16 overflow-hidden rounded-2xl bg-muted shadow-sm sm:h-14 sm:w-14"
@@ -287,8 +269,6 @@
 													{/if}
 												</div>
 											</div>
-
-											<!-- Content -->
 											<div class="min-w-0 flex-1 space-y-1 pt-0.5">
 												<div class="flex items-start justify-between gap-4">
 													<div class="flex items-start gap-2">
@@ -305,8 +285,6 @@
 															</p>
 														</div>
 													</div>
-
-													<!-- Menu Trigger (Mobile & Desktop) -->
 													<div class="absolute right-2 top-2 sm:static sm:right-auto sm:top-auto">
 														<DropdownMenu.Root>
 															<DropdownMenu.Trigger
@@ -342,9 +320,7 @@
 														</DropdownMenu.Root>
 													</div>
 												</div>
-
 												<div class="flex items-center justify-between gap-4">
-													<!-- Macros -->
 													{#if meal.protein || meal.carbs || meal.fat}
 														<div
 															class="flex flex-wrap items-center gap-1.5 text-[11px] font-medium"
@@ -368,8 +344,6 @@
 													{:else}
 														<div></div>
 													{/if}
-
-													<!-- Calories -->
 													<div class="flex items-baseline gap-1 text-right">
 														<span class="text-lg font-bold tabular-nums leading-none"
 															>{meal.calories}</span
@@ -390,8 +364,6 @@
 				</div>
 			</div>
 		</div>
-
-		<!-- Floating Action Button -->
 		<div class="fixed bottom-8 left-1/2 z-30 -translate-x-1/2">
 			<Button
 				size="lg"
