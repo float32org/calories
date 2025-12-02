@@ -62,8 +62,6 @@
 
 			aiResult = result;
 			calorieGoal = String(result.calories);
-
-			toast.success('AI recommendation ready!');
 		} catch (err) {
 			console.error('Optimization failed:', err);
 			toast.error('Failed to get AI recommendation');
@@ -82,8 +80,6 @@
 				calorieGoal: parseInt(calorieGoal),
 				weightGoal: weightGoal ? parseFloat(weightGoal) : undefined
 			});
-
-			toast.success('Settings saved!');
 			onSave?.();
 			open = false;
 		} catch (err) {
@@ -102,7 +98,6 @@
 	contentClass="sm:max-w-md"
 >
 	<div class="py-4 space-y-6">
-		<!-- Current Stats -->
 		{#if currentWeight}
 			<div class="bg-muted/30 border border-muted rounded-lg p-3 flex items-center gap-3">
 				<div class="bg-background p-2 rounded-md shadow-sm">
@@ -115,7 +110,6 @@
 			</div>
 		{/if}
 
-		<!-- Goal Weight -->
 		<div class="space-y-2">
 			<Label for="weightGoal">Goal Weight</Label>
 			<InputGroup.Root>
@@ -132,7 +126,6 @@
 			</InputGroup.Root>
 		</div>
 
-		<!-- AI Optimize Button -->
 		{#if currentWeight && weightGoal}
 			<Button variant="outline" class="w-full" onclick={handleOptimize} disabled={optimizing}>
 				{#if optimizing}
@@ -145,7 +138,6 @@
 			</Button>
 		{/if}
 
-		<!-- AI Result -->
 		{#if aiResult}
 			<div class="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
 				<div class="flex items-center gap-2">
@@ -166,7 +158,6 @@
 			</div>
 		{/if}
 
-		<!-- Calorie Goal -->
 		<div class="space-y-2">
 			<Label for="calorieGoal">Daily Calorie Goal</Label>
 			<InputGroup.Root>
@@ -187,7 +178,6 @@
 			{/if}
 		</div>
 
-		<!-- Save Button -->
 		<Button onclick={handleSave} disabled={!calorieGoal || saving} class="w-full">
 			{#if saving}
 				<Loader2Icon class="mr-2 size-4 animate-spin" />

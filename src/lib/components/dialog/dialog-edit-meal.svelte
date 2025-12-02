@@ -28,16 +28,13 @@
 	let name = $state('');
 	let servings = $state('1');
 
-	// Base values (per serving)
 	let baseCalories = $state(0);
 	let baseProtein = $state(0);
 	let baseCarbs = $state(0);
 	let baseFat = $state(0);
 
-	// Track original servings to calculate base values
 	let originalServings = $state(1);
 
-	// Calculated totals
 	let servingsNum = $derived(parseFloat(servings) || 1);
 	let calories = $derived(Math.round(baseCalories * servingsNum));
 	let protein = $derived(Math.round(baseProtein * servingsNum));
@@ -50,7 +47,6 @@
 			originalServings = meal.servings || 1;
 			servings = String(originalServings);
 
-			// Calculate base values (per serving) from the stored totals
 			baseCalories = Math.round(meal.calories / originalServings);
 			baseProtein = meal.protein ? Math.round(meal.protein / originalServings) : 0;
 			baseCarbs = meal.carbs ? Math.round(meal.carbs / originalServings) : 0;
@@ -98,7 +94,6 @@
 	contentClass="sm:max-w-md"
 >
 	<div class="space-y-6 py-4">
-		<!-- Form Fields -->
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label for="edit-name">Meal Name</Label>
@@ -149,7 +144,6 @@
 				</div>
 			</div>
 
-			<!-- Macros -->
 			<div class="grid grid-cols-3 gap-3">
 				<div class="space-y-2">
 					<Label for="edit-protein" class="text-xs text-muted-foreground">Protein</Label>
@@ -204,7 +198,6 @@
 				</div>
 			</div>
 
-			<!-- Show calculated totals when servings != 1 -->
 			{#if servingsNum !== 1 && baseCalories > 0}
 				<div class="rounded-xl bg-muted/30 p-4">
 					<div class="flex items-center justify-between mb-2">
@@ -233,7 +226,6 @@
 			{/if}
 		</div>
 
-		<!-- Submit Button -->
 		<Button
 			onclick={handleSubmit}
 			disabled={!name || calories <= 0}

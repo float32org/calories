@@ -127,6 +127,50 @@ export async function analyzeMealFromImage(
 	return object;
 }
 
+const TEXT_SYSTEM_PROMPT = `You are a nutrition analysis expert. Your job is to analyze text descriptions of food and provide accurate nutritional information.
+
+IMPORTANT RULES:
+1. Accept any valid food description (e.g., "3 tacos", "large pepperoni pizza", "bowl of oatmeal with berries").
+2. If the text does NOT describe food (e.g., "a car", "nonsense"), set isFood to false and provide a brief rejectionReason.
+3. Set isNutritionLabel to false for all text descriptions.
+4. Estimate portion sizes based on typical serving sizes if not specified.
+5. Be realistic with calorie estimates - don't underestimate.
+6. Sum up the total nutritional content for all items described.
+7. Round all numbers to reasonable values (calories to nearest 10, macros to nearest gram).`;
+
+export async function analyzeMealFromText(description: string): Promise<MealAnalysis> {
+	const { object } = await generateObject({
+		model: openrouter.chat('google/gemini-2.5-flash-preview-09-2025'),
+		schema: mealAnalysisSchema,
+		messages: [
+			{
+				role: 'system',
+				content: TEXT_SYSTEM_PROMPT
+			},
+			{
+				role: 'user',
+				content: `Analyze this food description and provide nutritional information: "${description}"`
+			}
+		]
+	});
+
+	if (!object.isFood) {
+		return {
+			isFood: false,
+			isNutritionLabel: false,
+			rejectionReason:
+				object.rejectionReason || 'This does not appear to be a valid food description.',
+			name: '',
+			calories: 0,
+			protein: 0,
+			carbs: 0,
+			fat: 0
+		};
+	}
+
+	return object;
+}
+
 const calorieOptimizationSchema = z.object({
 	calories: z.number().int().describe('Recommended daily calorie intake'),
 	timeline: z.string().describe('Estimated time to reach goal (e.g., "8-10 weeks", "3-4 months")'),

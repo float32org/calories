@@ -1,5 +1,5 @@
 import { command, getRequestEvent, query } from '$app/server';
-import { analyzeMealFromImage } from '$lib/server/ai';
+import { analyzeMealFromImage, analyzeMealFromText } from '$lib/server/ai';
 import { db } from '$lib/server/db';
 import { mealLogs } from '$lib/server/schema';
 import { getPresignedUrl, s3Client } from '$lib/server/storage';
@@ -60,6 +60,40 @@ export const analyzeMealImage = command(
 		} catch (err) {
 			console.error('Meal analysis failed:', err);
 			return error(500, 'Failed to analyze meal. Please try again.');
+		}
+	}
+);
+
+export const analyzeMealText = command(
+	z.object({
+		description: z.string().min(3)
+	}),
+	async (input) => {
+		const { locals } = getRequestEvent();
+		if (!locals.session || !locals.user) {
+			return error(401, 'Unauthorized');
+		}
+
+		try {
+			const analysis = await analyzeMealFromText(input.description);
+			if (!analysis.isFood) {
+				return error(
+					400,
+					analysis.rejectionReason || 'This does not appear to be a valid food description.'
+				);
+			}
+
+			return {
+				name: analysis.name,
+				calories: analysis.calories,
+				protein: analysis.protein,
+				carbs: analysis.carbs,
+				fat: analysis.fat,
+				isNutritionLabel: false
+			};
+		} catch (err) {
+			console.error('Meal text analysis failed:', err);
+			return error(500, 'Failed to analyze meal description. Please try again.');
 		}
 	}
 );

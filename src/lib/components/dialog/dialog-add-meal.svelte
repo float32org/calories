@@ -2,10 +2,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import { Label } from '$lib/components/ui/label';
-	import { analyzeMealImage } from '$lib/remote/meals.remote';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { analyzeMealImage, analyzeMealText } from '$lib/remote/meals.remote';
+	import AlignLeftIcon from '@lucide/svelte/icons/align-left';
 	import CameraIcon from '@lucide/svelte/icons/camera';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
+	import EditIcon from '@lucide/svelte/icons/pencil';
+	import ScanLineIcon from '@lucide/svelte/icons/scan-line';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import TagIcon from '@lucide/svelte/icons/tag';
 	import XIcon from '@lucide/svelte/icons/x';
@@ -34,29 +38,26 @@
 		onAdd?: (meal: MealData) => void;
 	} = $props();
 
+	let mode = $state<'camera' | 'describe' | 'manual'>('camera');
 	let name = $state('');
+	let description = $state('');
 	let imagePreview = $state<string | null>(null);
 	let imageKey = $state<string | null>(null);
 	let analyzing = $state(false);
 	let analyzed = $state(false);
 	let fileInput: HTMLInputElement;
 
-	// Serving size info from nutrition labels
 	let isNutritionLabel = $state(false);
 	let servingSize = $state<string | null>(null);
 	let servingQuantity = $state<number | null>(null);
 	let servingUnit = $state<string | null>(null);
 
-	// Per-serving values (base values from AI)
 	let baseCalories = $state(0);
 	let baseProtein = $state(0);
 	let baseCarbs = $state(0);
 	let baseFat = $state(0);
-
-	// User input - amount they ate in the serving unit
 	let amountEaten = $state('1');
 
-	// Calculate servings from amount eaten
 	let servings = $derived.by(() => {
 		const amount = parseFloat(amountEaten) || 0;
 		if (!isNutritionLabel || !servingQuantity) {
@@ -65,7 +66,6 @@
 		return amount / servingQuantity;
 	});
 
-	// Calculate final values based on servings
 	let calories = $derived(Math.round(baseCalories * servings));
 	let protein = $derived(Math.round(baseProtein * servings));
 	let carbs = $derived(Math.round(baseCarbs * servings));
@@ -73,6 +73,7 @@
 
 	function reset() {
 		name = '';
+		description = '';
 		amountEaten = '1';
 		baseCalories = 0;
 		baseProtein = 0;
@@ -86,6 +87,7 @@
 		servingSize = null;
 		servingQuantity = null;
 		servingUnit = null;
+		mode = 'camera';
 	}
 
 	function fileToBase64(file: File): Promise<string> {
@@ -155,6 +157,38 @@
 		}
 	}
 
+	async function handleTextAnalyze() {
+		if (!description.trim()) return;
+
+		analyzing = true;
+		analyzed = false;
+
+		try {
+			const result = await analyzeMealText({
+				description: description
+			});
+
+			name = result.name;
+			baseCalories = result.calories;
+			baseProtein = result.protein;
+			baseCarbs = result.carbs;
+			baseFat = result.fat;
+			analyzed = true;
+			isNutritionLabel = false;
+			amountEaten = '1';
+
+			toast.success('Meal analyzed!', {
+				description: `${result.name} - ${result.calories} kcal`
+			});
+		} catch (err: unknown) {
+			console.error('Text analysis failed', err);
+			const message = err instanceof Error ? err.message : 'Failed to analyze description';
+			toast.error(message);
+		} finally {
+			analyzing = false;
+		}
+	}
+
 	function clearImage() {
 		imagePreview = null;
 		imageKey = null;
@@ -191,7 +225,6 @@
 		}
 	}
 
-	// For manual entry mode (non-label)
 	function handleManualCaloriesInput(value: string) {
 		baseCalories = parseInt(value) || 0;
 		amountEaten = '1';
@@ -208,84 +241,161 @@
 	function handleManualFatInput(value: string) {
 		baseFat = parseInt(value) || 0;
 	}
+
+	function setMode(newMode: 'camera' | 'describe' | 'manual') {
+		mode = newMode;
+		if (newMode === 'manual') {
+			setTimeout(() => {
+				const el = document.getElementById('name');
+				el?.focus();
+			}, 50);
+		}
+	}
 </script>
 
 <ResponsiveDialog
 	bind:open
 	title="Log Meal"
-	subtitle="Snap a photo for instant AI analysis."
+	subtitle="Scan a photo or describe your food for AI analysis."
 	contentClass="sm:max-w-md"
 >
 	<div class="space-y-6 py-4">
-		<!-- Image Upload Area -->
-		<div class="relative">
+		<div class="bg-muted/50 p-1 rounded-lg flex gap-1">
 			<button
 				type="button"
-				class="border-muted-foreground/20 hover:border-primary/50 bg-muted/20 hover:bg-muted/40 relative flex aspect-video w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-all"
-				onclick={() => fileInput?.click()}
-				disabled={analyzing}
+				class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all {mode ===
+				'camera'
+					? 'bg-background shadow-sm text-foreground'
+					: 'text-muted-foreground hover:bg-background/50 hover:text-foreground'}"
+				onclick={() => setMode('camera')}
 			>
-				{#if imagePreview}
-					<img src={imagePreview} alt="Preview" class="h-full w-full object-cover" />
-					{#if analyzed}
-						<div class="absolute top-3 left-3 flex items-center gap-2">
-							{#if isNutritionLabel}
-								<div
-									class="bg-blue-500 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"
-								>
-									<TagIcon class="size-3" />
-									Label Scanned
-								</div>
-							{:else}
-								<div
-									class="bg-emerald-500 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"
-								>
-									<SparklesIcon class="size-3" />
-									AI Analyzed
-								</div>
-							{/if}
-						</div>
-					{/if}
-				{:else}
-					<div class="bg-background p-4 rounded-full shadow-sm mb-2">
-						<CameraIcon class="size-6 text-muted-foreground" />
-					</div>
-					<p class="text-sm font-medium">Take a photo</p>
-				{/if}
-
-				{#if analyzing}
-					<div
-						class="bg-background/90 absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm"
-					>
-						<div class="relative">
-							<Loader2Icon class="text-primary size-8 animate-spin" />
-						</div>
-						<p class="text-sm font-medium mt-3">Analyzing...</p>
-					</div>
-				{/if}
-
-				<input
-					type="file"
-					accept="image/jpeg,image/png,image/webp,image/heic"
-					capture="environment"
-					bind:this={fileInput}
-					onchange={handleFileSelect}
-					class="hidden"
-				/>
+				<CameraIcon class="size-4" />
+				Scan
 			</button>
-
-			{#if imagePreview && !analyzing}
-				<button
-					type="button"
-					class="absolute -top-2 -right-2 bg-background shadow-sm border p-1.5 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-colors"
-					onclick={clearImage}
-				>
-					<XIcon class="size-3" />
-				</button>
-			{/if}
+			<button
+				type="button"
+				class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all {mode ===
+				'describe'
+					? 'bg-background shadow-sm text-foreground'
+					: 'text-muted-foreground hover:bg-background/50 hover:text-foreground'}"
+				onclick={() => setMode('describe')}
+			>
+				<AlignLeftIcon class="size-4" />
+				Describe
+			</button>
+			<button
+				type="button"
+				class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all {mode ===
+				'manual'
+					? 'bg-background shadow-sm text-foreground'
+					: 'text-muted-foreground hover:bg-background/50 hover:text-foreground'}"
+				onclick={() => setMode('manual')}
+			>
+				<EditIcon class="size-4" />
+				Manual
+			</button>
 		</div>
 
-		<!-- Form Fields -->
+		{#if mode === 'camera'}
+			<div class="relative">
+				<button
+					type="button"
+					class="border-muted-foreground/20 hover:border-primary/50 bg-muted/20 hover:bg-muted/40 relative flex aspect-video w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-all"
+					onclick={() => fileInput?.click()}
+					disabled={analyzing}
+				>
+					{#if imagePreview}
+						<img src={imagePreview} alt="Preview" class="h-full w-full object-cover" />
+						{#if analyzed}
+							<div class="absolute top-3 left-3 flex items-center gap-2">
+								{#if isNutritionLabel}
+									<div
+										class="bg-blue-500 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"
+									>
+										<TagIcon class="size-3" />
+										Label Scanned
+									</div>
+								{:else}
+									<div
+										class="bg-emerald-500 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"
+									>
+										<SparklesIcon class="size-3" />
+										AI Analyzed
+									</div>
+								{/if}
+							</div>
+						{/if}
+					{:else}
+						<div class="bg-background p-4 rounded-full shadow-sm mb-2">
+							<ScanLineIcon class="size-6 text-muted-foreground" />
+						</div>
+						<p class="text-sm font-medium">Take a photo</p>
+					{/if}
+
+					{#if analyzing}
+						<div
+							class="bg-background/90 absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm"
+						>
+							<div class="relative">
+								<Loader2Icon class="text-primary size-8 animate-spin" />
+							</div>
+							<p class="text-sm font-medium mt-3">Analyzing...</p>
+						</div>
+					{/if}
+
+					<input
+						type="file"
+						accept="image/jpeg,image/png,image/webp,image/heic"
+						capture="environment"
+						bind:this={fileInput}
+						onchange={handleFileSelect}
+						class="hidden"
+					/>
+				</button>
+
+				{#if imagePreview && !analyzing}
+					<button
+						type="button"
+						class="absolute -top-2 -right-2 bg-background shadow-sm border p-1.5 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-colors"
+						onclick={clearImage}
+					>
+						<XIcon class="size-3" />
+					</button>
+				{/if}
+			</div>
+		{:else if mode === 'describe'}
+			<div class="space-y-3">
+				<Label for="description">What did you eat?</Label>
+				<div class="relative">
+					<Textarea
+						id="description"
+						placeholder="e.g., 3 beef tacos with salsa and guacamole..."
+						bind:value={description}
+						class="min-h-[120px] resize-none text-base"
+						disabled={analyzing}
+					/>
+					{#if analyzing}
+						<div
+							class="absolute inset-0 bg-background/80 flex flex-col items-center justify-center backdrop-blur-[1px] rounded-md"
+						>
+							<Loader2Icon class="text-primary size-6 animate-spin" />
+							<p class="text-xs font-medium mt-2">Thinking...</p>
+						</div>
+					{/if}
+				</div>
+				<Button
+					variant="secondary"
+					class="w-full"
+					disabled={!description.trim() || analyzing}
+					onclick={handleTextAnalyze}
+				>
+					<SparklesIcon class="size-4 mr-2" />
+					Analyze with AI
+				</Button>
+			</div>
+		{/if}
+
+		<!-- Results & Form Fields -->
 		<div class="space-y-4">
 			<div class="space-y-2">
 				<Label for="name">Meal Name</Label>
@@ -299,9 +409,7 @@
 				</InputGroup.Root>
 			</div>
 
-			<!-- Serving Size Input - Different UX for labels vs food photos -->
 			{#if isNutritionLabel && servingSize && servingUnit}
-				<!-- Nutrition Label Mode: Input amount in the serving unit -->
 				<div class="space-y-3">
 					<div class="flex items-center justify-between">
 						<Label for="amount">How much did you eat?</Label>
@@ -325,7 +433,6 @@
 						</InputGroup.Addon>
 					</InputGroup.Root>
 
-					<!-- Quick amount buttons -->
 					<div class="flex gap-2">
 						<button
 							type="button"
@@ -357,7 +464,6 @@
 						</button>
 					</div>
 
-					<!-- Calculated totals display -->
 					<div class="rounded-xl bg-muted/30 p-4">
 						<div class="flex items-center justify-between mb-3">
 							<span class="text-sm font-medium text-muted-foreground">Your total</span>
@@ -379,7 +485,6 @@
 					</div>
 				</div>
 			{:else}
-				<!-- Food Photo / Manual Entry Mode -->
 				<div class="grid grid-cols-2 gap-4">
 					<div class="space-y-2">
 						<Label for="calories">Calories</Label>
@@ -414,7 +519,6 @@
 					</div>
 				</div>
 
-				<!-- Macros -->
 				<div class="grid grid-cols-3 gap-3">
 					<div class="space-y-2">
 						<Label for="protein" class="text-xs text-muted-foreground">Protein</Label>
@@ -469,7 +573,6 @@
 					</div>
 				</div>
 
-				<!-- Show calculated totals when servings > 1 in manual mode -->
 				{#if parseFloat(amountEaten) > 1 && baseCalories > 0}
 					<div class="rounded-xl bg-muted/30 p-4">
 						<div class="flex items-center justify-between mb-2">
@@ -499,7 +602,6 @@
 			{/if}
 		</div>
 
-		<!-- Submit Button -->
 		<Button
 			onclick={handleSubmit}
 			disabled={!name || calories <= 0 || analyzing}
