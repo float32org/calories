@@ -7,9 +7,9 @@
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
 </script>
 
-<div class="flex h-dvh flex-col overflow-hidden">
+<div class="flex h-dvh flex-col">
 	<Header user={data.user} />
-	<main class="relative flex-1 overflow-hidden">
+	<main class="min-h-0 flex-1">
 		{@render children()}
 	</main>
 </div>

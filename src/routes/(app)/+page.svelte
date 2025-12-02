@@ -202,7 +202,7 @@
 </svelte:head>
 
 <div class="flex h-full flex-col bg-background">
-	<div class="mx-auto flex h-full w-full max-w-md flex-col overflow-hidden">
+	<div class="mx-auto flex h-full w-full max-w-md flex-col">
 		<header class="flex shrink-0 items-center justify-between px-4 py-2">
 			<Button variant="ghost" size="icon" class="rounded-full" onclick={() => handleDateChange(-1)}>
 				<ChevronLeftIcon class="size-5 text-muted-foreground" />
@@ -226,9 +226,9 @@
 			</Button>
 		</header>
 
-		<div class="flex-1 overflow-hidden px-6 pb-20">
-			<div class="flex h-full flex-col gap-6">
-				<div class="flex shrink-0 flex-col gap-6">
+		<div class="flex min-h-0 flex-1 flex-col px-6">
+			<div class="flex min-h-0 flex-1 flex-col gap-4">
+				<div class="shrink-0">
 					<div class="flex flex-col items-center justify-center py-2">
 						<CalorieRadialChart
 							meals={currentDayMeals.map((m) => ({
@@ -237,12 +237,12 @@
 								calories: m.calories
 							}))}
 							goal={calorieGoal}
-							size={240}
-							thickness={20}
+							size={200}
+							thickness={16}
 						/>
 
 						{#if totalProtein > 0 || totalCarbs > 0 || totalFat > 0}
-							<div class="mt-6 flex items-center gap-8" transition:slide>
+							<div class="mt-2 flex items-center gap-8" transition:slide>
 								<div class="flex flex-col items-center">
 									<span class="text-lg font-bold text-blue-500 dark:text-blue-400"
 										>{totalProtein}g</span
@@ -274,49 +274,59 @@
 							</div>
 						{/if}
 					</div>
-					<div class="grid grid-cols-2 gap-3">
-						<button
-							class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
-							onclick={() => (isSettingsOpen = true)}
+					<div class="mt-4 flex w-full flex-col gap-2">
+						<div class="grid grid-cols-2 gap-3">
+							<button
+								class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
+								onclick={() => (isSettingsOpen = true)}
+							>
+								<div class="bg-background shrink-0 rounded-full p-2 shadow-sm">
+									<SettingsIcon
+										class="text-muted-foreground group-hover:text-foreground size-4 transition-colors"
+									/>
+								</div>
+								<div class="min-w-0 flex-1">
+									<span class="block text-xs font-bold text-foreground">Settings</span>
+									<span class="block truncate text-[10px] font-medium text-muted-foreground">
+										{calorieGoal} kcal goal
+									</span>
+								</div>
+							</button>
+							<button
+								class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
+								onclick={() => (isWeightModalOpen = true)}
+							>
+								<div class="bg-background shrink-0 rounded-full p-2 shadow-sm">
+									<UtensilsIcon
+										class="text-muted-foreground group-hover:text-foreground size-4 transition-colors"
+									/>
+								</div>
+								<div class="min-w-0 flex-1">
+									<span class="block text-xs font-bold text-foreground">Weight</span>
+									<span class="block truncate text-[10px] font-medium text-muted-foreground">
+										{currentWeight ? `${currentWeight} ${weightUnit}` : 'Log weight'}
+									</span>
+								</div>
+							</button>
+						</div>
+						<Button
+							size="lg"
+							class="h-12 w-full rounded-xl bg-primary font-bold shadow-sm transition-all active:scale-[0.98]"
+							onclick={() => (isAddModalOpen = true)}
 						>
-							<div class="bg-background shrink-0 rounded-full p-2 shadow-sm">
-								<SettingsIcon
-									class="text-muted-foreground group-hover:text-foreground size-4 transition-colors"
-								/>
-							</div>
-							<div class="min-w-0 flex-1">
-								<span class="block text-xs font-bold text-foreground">Settings</span>
-								<span class="block truncate text-[10px] font-medium text-muted-foreground">
-									{calorieGoal} kcal goal
-								</span>
-							</div>
-						</button>
-						<button
-							class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
-							onclick={() => (isWeightModalOpen = true)}
-						>
-							<div class="bg-background shrink-0 rounded-full p-2 shadow-sm">
-								<UtensilsIcon
-									class="text-muted-foreground group-hover:text-foreground size-4 transition-colors"
-								/>
-							</div>
-							<div class="min-w-0 flex-1">
-								<span class="block text-xs font-bold text-foreground">Weight</span>
-								<span class="block truncate text-[10px] font-medium text-muted-foreground">
-									{currentWeight ? `${currentWeight} ${weightUnit}` : 'Log weight'}
-								</span>
-							</div>
-						</button>
+							<PlusIcon class="size-5" />
+							Log Meal
+						</Button>
 					</div>
 				</div>
 				<div class="flex min-h-0 flex-1 flex-col gap-2">
-					<h2 class="flex shrink-0 items-center gap-2 text-lg font-bold">
+					<h2 class="shrink-0 flex items-center gap-2 text-lg font-bold">
 						Meals
 						<span class="bg-muted text-muted-foreground rounded-full px-2 py-1 text-xs font-medium"
 							>{currentDayMeals.length}</span
 						>
 					</h2>
-					<div class="-mr-2 flex-1 overflow-y-auto pr-2 no-scrollbar">
+					<div class="min-h-0 flex-1 overflow-y-auto">
 						{#if currentDayMeals.length === 0}
 							<div
 								class="text-muted-foreground bg-muted/10 border-muted rounded-3xl border border-dashed py-12 text-center"
@@ -449,18 +459,6 @@
 					</div>
 				</div>
 			</div>
-		</div>
-		<div class="fixed bottom-8 left-1/2 z-30 -translate-x-1/2">
-			<Button
-				size="lg"
-				class="group relative h-14 rounded-full border-t border-white/5 bg-primary px-8 shadow-lg transition-all hover:scale-105 active:scale-95"
-				onclick={() => (isAddModalOpen = true)}
-			>
-				<PlusIcon
-					class="mr-2 size-5 stroke-3 transition-transform duration-300 group-hover:rotate-90"
-				/>
-				<span class="font-bold tracking-wide">Log Meal</span>
-			</Button>
 		</div>
 	</div>
 
