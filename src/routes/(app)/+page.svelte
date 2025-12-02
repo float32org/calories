@@ -327,7 +327,7 @@
 							>{currentDayMeals.length}</span
 						>
 					</h2>
-					<div class="min-h-0 flex-1 overflow-y-auto">
+					<div class="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
 						{#if currentDayMeals.length === 0}
 							<div
 								class="text-muted-foreground bg-muted/10 border-muted rounded-3xl border border-dashed py-12 text-center"
@@ -341,102 +341,100 @@
 								<p class="text-sm text-muted-foreground">Add your first meal to start tracking</p>
 							</div>
 						{:else}
-							<div class="space-y-3 pb-4">
-								{#each currentDayMeals as meal, i (meal.id)}
+							<div class="space-y-2 pb-4">
+								{#each currentDayMeals as meal (meal.id)}
 									<div
 										transition:slide={{ duration: 200 }}
-										class="group relative flex flex-col gap-3 rounded-3xl bg-card/50 p-4 transition-all hover:bg-muted/50 sm:flex-row sm:items-center sm:gap-6"
+										class="group relative overflow-hidden rounded-2xl bg-muted/30 transition-colors hover:bg-muted/50"
 									>
-										<div class="flex flex-1 items-start gap-4">
-											<div class="relative shrink-0">
-												<div
-													class="h-16 w-16 overflow-hidden rounded-2xl bg-muted shadow-sm sm:h-14 sm:w-14"
-												>
-													{#if meal.image}
-														<img
-															src={meal.image}
-															alt={meal.name}
-															class="h-full w-full object-cover"
-														/>
-													{:else}
-														<div class="flex h-full w-full items-center justify-center bg-muted/50">
-															<UtensilsIcon class="size-6 text-muted-foreground/40" />
-														</div>
-													{/if}
-												</div>
+										<div class="flex items-stretch">
+											<div class="relative w-20 shrink-0">
+												{#if meal.image}
+													<img
+														src={meal.image}
+														alt={meal.name}
+														class="absolute inset-0 h-full w-full object-cover"
+													/>
+												{:else}
+													<div
+														class="absolute inset-0 flex items-center justify-center bg-linear-to-br from-muted/80 to-muted/40"
+													>
+														<UtensilsIcon class="size-5 text-muted-foreground/30" />
+													</div>
+												{/if}
 											</div>
-											<div class="min-w-0 flex-1 space-y-1 pt-0.5">
-												<div class="flex items-start justify-between gap-4">
-													<div class="flex items-start gap-2">
-														<div
-															class="mt-1.5 h-2 w-2 shrink-0 rounded-full shadow-sm ring-1 ring-white/10"
-															style="background-color: var(--chart-{(i % 5) + 1})"
-														></div>
-														<div>
-															<h3 class="font-bold leading-tight text-foreground line-clamp-2">
-																{meal.name}
-															</h3>
-															<p class="text-xs font-medium text-muted-foreground/80">
-																{#if browser}
-																	{formatTime(meal.timestamp)}
-																{/if}
-															</p>
-														</div>
+											<div class="flex min-w-0 flex-1 flex-col justify-center gap-2 p-3">
+												<div class="flex items-start justify-between gap-2">
+													<div class="min-w-0 flex-1">
+														<h3 class="font-bold leading-snug text-foreground line-clamp-1">
+															{meal.name}
+														</h3>
+														<p class="text-[11px] text-muted-foreground">
+															{#if browser}
+																{formatTime(meal.timestamp)}
+															{/if}
+														</p>
 													</div>
-													<div class="absolute right-2 top-2 sm:static sm:right-auto sm:top-auto">
-														<DropdownMenu>
-															<DropdownMenuTrigger
-																class="flex size-8 items-center justify-center rounded-full text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+													<DropdownMenu>
+														<DropdownMenuTrigger
+															class="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:opacity-0 sm:focus:opacity-100 sm:group-hover:opacity-100"
+														>
+															<EllipsisIcon class="size-4" />
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end">
+															<DropdownMenuItem
+																onclick={() => {
+																	editingMeal = {
+																		id: meal.id,
+																		name: meal.name,
+																		calories: meal.calories,
+																		servings: meal.servings,
+																		protein: meal.protein ?? undefined,
+																		carbs: meal.carbs ?? undefined,
+																		fat: meal.fat ?? undefined
+																	};
+																	isEditModalOpen = true;
+																}}
 															>
-																<EllipsisIcon class="size-4" />
-															</DropdownMenuTrigger>
-															<DropdownMenuContent align="end">
-																<DropdownMenuItem
-																	onclick={() => {
-																		editingMeal = {
-																			id: meal.id,
-																			name: meal.name,
-																			calories: meal.calories,
-																			servings: meal.servings,
-																			protein: meal.protein ?? undefined,
-																			carbs: meal.carbs ?? undefined,
-																			fat: meal.fat ?? undefined
-																		};
-																		isEditModalOpen = true;
-																	}}
-																>
-																	<PencilIcon class="mr-2 size-4" />
-																	Edit
-																</DropdownMenuItem>
-																<DropdownMenuItem
-																	class="text-destructive focus:text-destructive"
-																	onclick={() => handleDeleteMeal(meal.id)}
-																>
-																	<Trash2Icon class="mr-2 size-4" />
-																	Delete
-																</DropdownMenuItem>
-															</DropdownMenuContent>
-														</DropdownMenu>
-													</div>
+																<PencilIcon class="mr-2 size-4" />
+																Edit
+															</DropdownMenuItem>
+															<DropdownMenuItem
+																class="text-destructive focus:text-destructive"
+																onclick={() => handleDeleteMeal(meal.id)}
+															>
+																<Trash2Icon class="mr-2 size-4" />
+																Delete
+															</DropdownMenuItem>
+														</DropdownMenuContent>
+													</DropdownMenu>
 												</div>
-												<div class="flex items-center justify-between gap-4">
-													<div class="flex flex-wrap items-center gap-1.5 text-[11px] font-medium">
-														<span class="text-blue-500 dark:text-blue-400"
-															>{meal.protein ?? 0}g P</span
+												<div class="flex items-center justify-between gap-3">
+													<div class="flex items-center gap-1">
+														<span
+															class="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-500 dark:bg-blue-400/10 dark:text-blue-400"
 														>
-														<span class="text-muted-foreground/40">•</span>
-														<span class="text-amber-500 dark:text-amber-400"
-															>{meal.carbs ?? 0}g C</span
+															{meal.protein ?? 0}g P
+														</span>
+														<span
+															class="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500 dark:bg-amber-400/10 dark:text-amber-400"
 														>
-														<span class="text-muted-foreground/40">•</span>
-														<span class="text-rose-500 dark:text-rose-400">{meal.fat ?? 0}g F</span>
+															{meal.carbs ?? 0}g C
+														</span>
+														<span
+															class="rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-500 dark:bg-rose-400/10 dark:text-rose-400"
+														>
+															{meal.fat ?? 0}g F
+														</span>
 													</div>
-													<div class="flex items-baseline gap-1 text-right">
-														<span class="text-lg font-bold tabular-nums leading-none"
+													<div
+														class="flex items-baseline gap-0.5 rounded-lg bg-foreground/5 px-2 py-1"
+													>
+														<span class="text-base font-bold tabular-nums leading-none"
 															>{meal.calories}</span
 														>
 														<span
-															class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
+															class="text-[9px] font-bold uppercase tracking-wide text-muted-foreground"
 															>kcal</span
 														>
 													</div>
