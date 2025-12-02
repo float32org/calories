@@ -67,7 +67,7 @@
 	</Dialog>
 {:else}
 	<Drawer bind:open>
-		<DrawerContent class="max-h-[90vh]">
+		<DrawerContent class={contentClass}>
 			<DrawerHeader class={cn('text-left', headerClass)}>
 				<div class="flex items-center gap-3">
 					{#if onBack}

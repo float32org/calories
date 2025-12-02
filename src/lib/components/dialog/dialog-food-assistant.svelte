@@ -10,6 +10,7 @@
 	import type { Message, MessagePart } from '$lib/messages';
 	import { deleteUploadedImage, getImageUploadUrl } from '$lib/remote/meals.remote';
 	import type { AssistantContext } from '$lib/server/assistant';
+	import type { MealInput } from '$lib/types';
 	import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
 	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
 	import ImagePlusIcon from '@lucide/svelte/icons/image-plus';
@@ -21,7 +22,6 @@
 	import { DefaultChatTransport, readUIMessageStream } from 'ai';
 	import { tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import type { MealInput } from '$lib/types';
 	import DialogFoodAssistantCard from './dialog-food-assistant-card.svelte';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
@@ -259,7 +259,7 @@
 	bind:open
 	title="Food Assistant"
 	subtitle="Get personalized meal suggestions"
-	contentClass="sm:max-w-lg h-[80vh] sm:h-[600px] flex flex-col overflow-hidden"
+	contentClass="sm:max-w-lg h-[100dvh] sm:h-[600px] flex flex-col overflow-hidden"
 	onBack={messages.length > 0 ? reset : undefined}
 >
 	<div class="flex flex-col flex-1 min-h-0">
