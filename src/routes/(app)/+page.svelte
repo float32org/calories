@@ -20,7 +20,7 @@
 	} from '$lib/components/ui/dropdown-menu';
 	import { addMeal, deleteMeal, getMeals, updateMeal } from '$lib/remote/meals.remote';
 	import { getSettings } from '$lib/remote/settings.remote';
-	import { getLatestWeight, logWeight } from '$lib/remote/weight.remote';
+	import { getLatestWeight, getWeightForDate, logWeight } from '$lib/remote/weight.remote';
 	import { formatDate, formatTime, getDisplayDate } from '$lib/utils/format';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
@@ -86,6 +86,9 @@
 	const meals = $derived(getMeals().current ?? initialMeals);
 	const settings = $derived(getSettings().current ?? initialSettings);
 	const latestWeight = $derived(getLatestWeight().current ?? initialLatestWeight);
+
+	const selectedDateStr = $derived(formatDate(selectedDate));
+	const weightForSelectedDate = $derived(getWeightForDate(selectedDateStr).current);
 
 	let currentDayMeals = $derived.by(() => {
 		const dateStr = formatDate(selectedDate);
@@ -199,7 +202,11 @@
 
 	async function handleLogWeight(weight: number) {
 		try {
-			await logWeight({ weight }).updates(getLatestWeight());
+			const dateStr = formatDate(selectedDate);
+			await logWeight({ weight, date: dateStr }).updates(
+				getLatestWeight(),
+				getWeightForDate(dateStr)
+			);
 		} catch (err) {
 			console.error('Failed to log weight:', err);
 			toast.error('Failed to log weight');
@@ -319,7 +326,9 @@
 								<div class="min-w-0 flex-1">
 									<span class="block text-xs font-bold text-foreground">Weight</span>
 									<span class="block truncate text-[10px] font-medium text-muted-foreground">
-										{currentWeight ? `${currentWeight} ${weightUnit}` : 'Log weight'}
+										{weightForSelectedDate?.weight
+											? `${weightForSelectedDate.weight} ${weightUnit}`
+											: 'Log weight'}
 									</span>
 								</div>
 							</button>
@@ -486,8 +495,9 @@
 	<WeightLogDialog
 		bind:open={isWeightModalOpen}
 		onSave={handleLogWeight}
-		currentWeight={currentWeight ?? 0}
+		currentWeight={weightForSelectedDate?.weight ?? latestWeight?.weight ?? 0}
 		unit={weightUnit}
+		date={selectedDate}
 	/>
 	<SettingsDialog
 		bind:open={isSettingsOpen}

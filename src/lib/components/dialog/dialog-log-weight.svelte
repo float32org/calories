@@ -7,18 +7,21 @@
 		InputGroupText
 	} from '$lib/components/ui/input-group';
 	import { Label } from '$lib/components/ui/label';
+	import { getDisplayDate } from '$lib/utils/format';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
 	let {
 		open = $bindable(false),
 		onSave,
 		currentWeight = 0,
-		unit = 'lbs'
+		unit = 'lbs',
+		date = new Date()
 	}: {
 		open?: boolean;
 		onSave?: (weight: number) => void;
 		currentWeight?: number;
 		unit?: string;
+		date?: Date;
 	} = $props();
 
 	let weight = $state('');
@@ -39,7 +42,7 @@
 <ResponsiveDialog
 	bind:open
 	title="Log Weight"
-	subtitle="Track your progress over time."
+	subtitle="Logging for {getDisplayDate(date)}"
 	contentClass="sm:max-w-md"
 >
 	<div class="space-y-6 py-4">
