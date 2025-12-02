@@ -122,7 +122,8 @@ export const mealLogs = pgTable(
 		carbs: integer('carbs'),
 		fat: integer('fat'),
 		image: text('image'),
-		mealTime: timestamp('meal_time').notNull(),
+		mealDate: text('meal_date').notNull(),
+		mealTime: timestamp('meal_time', { withTimezone: true }).notNull(),
 		createdAt: timestamp('created_at')
 			.$defaultFn(() => new Date())
 			.notNull(),
@@ -132,6 +133,7 @@ export const mealLogs = pgTable(
 	},
 	(table) => [
 		index('meals_user_id_idx').on(table.userId),
+		index('meals_meal_date_idx').on(table.mealDate),
 		index('meals_meal_time_idx').on(table.mealTime)
 	]
 );

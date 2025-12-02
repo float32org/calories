@@ -11,7 +11,10 @@ export function formatTimeAgo(date: Date): string {
 }
 
 export function formatDate(date: Date): string {
-	return date.toISOString().split('T')[0];
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
 }
 
 export function getDisplayDate(date: Date): string {
@@ -29,9 +32,12 @@ export function getDisplayDate(date: Date): string {
 	return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-export function formatTime(timestamp: number) {
-	return new Date(timestamp).toLocaleTimeString([], {
-		hour: 'numeric',
-		minute: '2-digit'
-	});
+export function formatTime(timestamp: number): string {
+	const date = new Date(timestamp);
+	const hours = date.getHours();
+	const minutes = date.getMinutes();
+	const ampm = hours >= 12 ? 'PM' : 'AM';
+	const displayHours = hours % 12 || 12;
+	const displayMinutes = minutes.toString().padStart(2, '0');
+	return `${displayHours}:${displayMinutes} ${ampm}`;
 }

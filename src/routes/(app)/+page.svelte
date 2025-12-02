@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import CalorieRadialChart from '$lib/components/dashboard/calorie-radial-chart.svelte';
 	import AddMealDialog from '$lib/components/dialog/dialog-add-meal.svelte';
 	import DatePickerDialog from '$lib/components/dialog/dialog-date-picker.svelte';
@@ -22,12 +25,39 @@
 	import { SvelteDate, SvelteMap } from 'svelte/reactivity';
 	import { slide } from 'svelte/transition';
 
-	const selectedDate = new SvelteDate();
+	function parseDateParam(param: string | null): Date {
+		if (!param) return new Date();
+		const parsed = new Date(param + 'T00:00:00');
+		return isNaN(parsed.getTime()) ? new Date() : parsed;
+	}
+
+	const initialDateParam = $page.url.searchParams.get('d');
+	const selectedDate = new SvelteDate(parseDateParam(initialDateParam));
+
+	function updateUrlDate(date: Date) {
+		const todayStr = formatDate(new Date());
+		const dateStr = formatDate(date);
+
+		if (dateStr === todayStr) {
+			goto('/', { replaceState: true, keepFocus: true, noScroll: true });
+		} else {
+			goto(`/?d=${dateStr}`, { replaceState: true, keepFocus: true, noScroll: true });
+		}
+	}
 	let isAddModalOpen = $state(false);
 	let isEditModalOpen = $state(false);
 	let isDatePickerOpen = $state(false);
 	let isWeightModalOpen = $state(false);
 	let isSettingsOpen = $state(false);
+
+	let wasDatePickerOpen = $state(false);
+	$effect(() => {
+		if (wasDatePickerOpen && !isDatePickerOpen) {
+			updateUrlDate(selectedDate);
+		}
+		wasDatePickerOpen = isDatePickerOpen;
+	});
+
 	let editingMeal = $state<{
 		id: string;
 		name: string;
@@ -78,6 +108,7 @@
 
 	function handleDateChange(days: number) {
 		selectedDate.setDate(selectedDate.getDate() + days);
+		updateUrlDate(selectedDate);
 	}
 
 	type MealInput = {
@@ -92,6 +123,16 @@
 	};
 
 	async function handleAddMeal(meal: MealInput) {
+		// Build ISO string with selected date + current time
+		const mealTime = new Date(
+			selectedDate.getFullYear(),
+			selectedDate.getMonth(),
+			selectedDate.getDate(),
+			new Date().getHours(),
+			new Date().getMinutes(),
+			new Date().getSeconds()
+		).toISOString();
+
 		try {
 			await addMeal({
 				name: meal.name,
@@ -101,7 +142,8 @@
 				carbs: meal.carbs,
 				fat: meal.fat,
 				imageKey: meal.imageKey,
-				mealTime: selectedDate.toISOString()
+				mealDate: formatDate(selectedDate),
+				mealTime
 			}).updates(getMeals());
 
 			toast.success('Meal logged!');
@@ -322,7 +364,9 @@
 																{meal.name}
 															</h3>
 															<p class="text-xs font-medium text-muted-foreground/80">
-																{formatTime(meal.timestamp)}
+																{#if browser}
+																	{formatTime(meal.timestamp)}
+																{/if}
 															</p>
 														</div>
 													</div>

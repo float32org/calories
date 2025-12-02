@@ -73,6 +73,7 @@ export const addMeal = command(
 		carbs: z.number().int().optional(),
 		fat: z.number().int().optional(),
 		imageKey: z.string().optional(),
+		mealDate: z.string(),
 		mealTime: z.string().optional()
 	}),
 	async (input) => {
@@ -94,6 +95,7 @@ export const addMeal = command(
 				carbs: input.carbs,
 				fat: input.fat,
 				image: input.imageKey,
+				mealDate: input.mealDate,
 				mealTime
 			})
 			.returning();
@@ -107,7 +109,7 @@ export const addMeal = command(
 			carbs: meal.carbs,
 			fat: meal.fat,
 			image: meal.image ? getPresignedUrl(meal.image) : null,
-			date: meal.mealTime.toISOString().split('T')[0],
+			date: meal.mealDate,
 			timestamp: meal.mealTime.getTime()
 		};
 	}
@@ -179,7 +181,7 @@ export const updateMeal = command(
 			carbs: updatedMeal.carbs,
 			fat: updatedMeal.fat,
 			image: updatedMeal.image ? getPresignedUrl(updatedMeal.image) : null,
-			date: updatedMeal.mealTime.toISOString().split('T')[0],
+			date: updatedMeal.mealDate,
 			timestamp: updatedMeal.mealTime.getTime()
 		};
 	}
@@ -207,7 +209,7 @@ export const getMeals = query(async () => {
 		carbs: m.carbs,
 		fat: m.fat,
 		image: m.image ? getPresignedUrl(m.image) : null,
-		date: m.mealTime.toISOString().split('T')[0],
+		date: m.mealDate,
 		timestamp: m.mealTime.getTime()
 	}));
 });

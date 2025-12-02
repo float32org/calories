@@ -20,8 +20,8 @@
 		thickness?: number;
 	} = $props();
 
-	const CENTER = size / 2;
-	const RADIUS = size / 2 - thickness;
+	const CENTER = $derived(size / 2);
+	const RADIUS = $derived(size / 2 - thickness);
 
 	// Generate consistently spaced segments
 	let segments = $derived.by(() => {
