@@ -1,6 +1,13 @@
 import type { Message } from '$lib/messages';
-import { assistantTools, buildSystemPrompt, type AssistantContext } from '$lib/server/assistant';
+import {
+	assistantTools,
+	buildSystemPrompt,
+	type AssistantContext,
+	type FoodPreference
+} from '$lib/server/assistant';
+import { db } from '$lib/server/db';
 import { openrouter } from '$lib/server/openrouter';
+import { foodPreferences } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
 import {
 	convertToModelMessages,
@@ -9,6 +16,7 @@ import {
 	smoothStream,
 	streamText
 } from 'ai';
+import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
@@ -16,10 +24,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
+	const userId = locals.user.id;
+
 	try {
 		const body = await request.json();
 		const { messages, context } = body as {
-			context: AssistantContext;
+			context: Omit<AssistantContext, 'preferences'>;
 			messages: Message[];
 		};
 
@@ -31,7 +41,25 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			return json({ error: 'Messages are required' }, { status: 400 });
 		}
 
-		const systemPrompt = buildSystemPrompt(context);
+		// Fetch user preferences from database
+		const userPreferences = await db
+			.select()
+			.from(foodPreferences)
+			.where(eq(foodPreferences.userId, userId));
+
+		const preferences: FoodPreference[] = userPreferences.map((p) => ({
+			id: p.id,
+			category: p.category as FoodPreference['category'],
+			value: p.value,
+			notes: p.notes
+		}));
+
+		const fullContext: AssistantContext = {
+			...context,
+			preferences
+		};
+
+		const systemPrompt = buildSystemPrompt(fullContext);
 
 		return createUIMessageStreamResponse({
 			stream: createUIMessageStream<Message>({
@@ -41,6 +69,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 						system: systemPrompt,
 						messages: convertToModelMessages(messages),
 						tools: assistantTools,
+						experimental_context: { userId },
 						experimental_transform: smoothStream({ chunking: 'word' })
 					});
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Markdown } from '$lib/components/markdown';
+	import { ToolManagePreference, ToolSuggestFood } from '$lib/components/tool';
 	import {
 		InputGroup,
 		InputGroupAddon,
@@ -22,7 +23,6 @@
 	import { DefaultChatTransport, readUIMessageStream } from 'ai';
 	import { tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import DialogFoodAssistantCard from './dialog-food-assistant-card.svelte';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
 	class StreamParser extends DefaultChatTransport<Message> {
@@ -231,8 +231,12 @@
 
 	function hasRenderableContent(msg: Message): boolean {
 		return (
-			msg.parts?.some((p) => (p.type === 'text' && p.text) || p.type === 'tool-suggestFood') ??
-			false
+			msg.parts?.some(
+				(p) =>
+					(p.type === 'text' && p.text) ||
+					p.type === 'tool-suggestFood' ||
+					p.type === 'tool-managePreference'
+			) ?? false
 		);
 	}
 
@@ -333,13 +337,18 @@
 												{#if part.type === 'text' && part.text}
 													<Markdown source={part.text} class="text-sm leading-relaxed" />
 												{:else if part.type === 'tool-suggestFood' && part.state === 'input-available'}
-													<DialogFoodAssistantCard
+													<ToolSuggestFood
 														name={part.input.name}
 														calories={part.input.calories}
 														protein={part.input.protein}
 														carbs={part.input.carbs}
 														fat={part.input.fat}
 														onLog={() => onLogMeal?.(part.input as MealInput)}
+													/>
+												{:else if part.type === 'tool-managePreference' && (part.state === 'input-available' || part.state === 'output-available')}
+													<ToolManagePreference
+														input={part.input}
+														output={part.state === 'output-available' ? part.output : undefined}
 													/>
 												{/if}
 											{/each}

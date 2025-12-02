@@ -157,3 +157,26 @@ export const weightLogs = pgTable(
 	},
 	(table) => [index('weight_logs_user_id_idx').on(table.userId)]
 );
+
+export const foodPreferences = pgTable(
+	'food_preferences',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		category: text('category').notNull(),
+		value: text('value').notNull(),
+		notes: text('notes'),
+		createdAt: timestamp('created_at')
+			.$defaultFn(() => new Date())
+			.notNull(),
+		updatedAt: timestamp('updated_at')
+			.$defaultFn(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		index('food_preferences_user_id_idx').on(table.userId),
+		index('food_preferences_category_idx').on(table.category)
+	]
+);
