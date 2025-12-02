@@ -12,6 +12,8 @@
 	import { deleteUploadedImage, getImageUploadUrl } from '$lib/remote/meals.remote';
 	import type { AssistantContext } from '$lib/server/assistant';
 	import type { MealInput } from '$lib/types';
+
+	type ClientAssistantContext = Omit<AssistantContext, 'preferences'>;
 	import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
 	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
 	import ImagePlusIcon from '@lucide/svelte/icons/image-plus';
@@ -37,7 +39,7 @@
 		onLogMeal
 	}: {
 		open?: boolean;
-		context: AssistantContext;
+		context: ClientAssistantContext;
 		onLogMeal?: (meal: MealInput) => void;
 	} = $props();
 
