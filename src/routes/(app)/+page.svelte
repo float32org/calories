@@ -3,11 +3,14 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import CalorieRadialChart from '$lib/components/dashboard/calorie-radial-chart.svelte';
-	import AddMealDialog from '$lib/components/dialog/dialog-add-meal.svelte';
-	import DatePickerDialog from '$lib/components/dialog/dialog-date-picker.svelte';
-	import EditMealDialog from '$lib/components/dialog/dialog-edit-meal.svelte';
-	import LogWeightDialog from '$lib/components/dialog/dialog-log-weight.svelte';
-	import SettingsDialog from '$lib/components/dialog/dialog-settings.svelte';
+	import {
+		AddMealDialog,
+		DatePickerDialog,
+		EditMealDialog,
+		FoodAssistantDialog,
+		SettingsDialog,
+		WeightLogDialog
+	} from '$lib/components/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		DropdownMenu,
@@ -25,6 +28,7 @@
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
+	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import UtensilsIcon from '@lucide/svelte/icons/utensils';
 	import { toast } from 'svelte-sonner';
@@ -55,6 +59,7 @@
 	let isDatePickerOpen = $state(false);
 	let isWeightModalOpen = $state(false);
 	let isSettingsOpen = $state(false);
+	let isAssistantOpen = $state(false);
 
 	let wasDatePickerOpen = $state(false);
 	$effect(() => {
@@ -107,9 +112,18 @@
 		}));
 	});
 
+	let totalCalories = $derived(currentDayMeals.reduce((acc, m) => acc + m.calories, 0));
 	let totalProtein = $derived(currentDayMeals.reduce((acc, m) => acc + (m.protein || 0), 0));
 	let totalCarbs = $derived(currentDayMeals.reduce((acc, m) => acc + (m.carbs || 0), 0));
 	let totalFat = $derived(currentDayMeals.reduce((acc, m) => acc + (m.fat || 0), 0));
+
+	let assistantContext = $derived({
+		calorieGoal,
+		caloriesConsumed: totalCalories,
+		proteinConsumed: totalProtein,
+		carbsConsumed: totalCarbs,
+		fatConsumed: totalFat
+	});
 
 	function handleDateChange(days: number) {
 		selectedDate.setDate(selectedDate.getDate() + days);
@@ -310,14 +324,25 @@
 								</div>
 							</button>
 						</div>
-						<Button
-							size="lg"
-							class="h-12 w-full rounded-xl bg-primary font-bold shadow-sm transition-all active:scale-[0.98]"
-							onclick={() => (isAddModalOpen = true)}
-						>
-							<PlusIcon class="size-5" />
-							Log Meal
-						</Button>
+						<div class="grid grid-cols-2 gap-3">
+							<Button
+								size="lg"
+								class="h-12 w-full rounded-xl bg-primary font-bold shadow-sm transition-all active:scale-[0.98]"
+								onclick={() => (isAddModalOpen = true)}
+							>
+								<PlusIcon class="size-5" />
+								Log Meal
+							</Button>
+							<Button
+								size="lg"
+								variant="secondary"
+								class="h-12 w-full rounded-xl font-bold shadow-sm transition-all active:scale-[0.98]"
+								onclick={() => (isAssistantOpen = true)}
+							>
+								<SparklesIcon class="size-5" />
+								Ask AI
+							</Button>
+						</div>
 					</div>
 				</div>
 				<div class="flex min-h-0 flex-1 flex-col gap-2">
@@ -461,7 +486,7 @@
 	<AddMealDialog bind:open={isAddModalOpen} onAdd={handleAddMeal} />
 	<EditMealDialog bind:open={isEditModalOpen} meal={editingMeal} onSave={handleUpdateMeal} />
 	<DatePickerDialog bind:open={isDatePickerOpen} date={selectedDate} {history} />
-	<LogWeightDialog
+	<WeightLogDialog
 		bind:open={isWeightModalOpen}
 		onSave={handleLogWeight}
 		currentWeight={currentWeight ?? 0}
@@ -474,5 +499,10 @@
 		{currentWeight}
 		{weightUnit}
 		onSave={() => getSettings().refresh()}
+	/>
+	<FoodAssistantDialog
+		bind:open={isAssistantOpen}
+		context={assistantContext}
+		onLogMeal={handleAddMeal}
 	/>
 </div>

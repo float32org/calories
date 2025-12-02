@@ -2,6 +2,7 @@
 	import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
 	import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '$lib/components/ui/drawer';
 	import { cn } from '$lib/utils/ui';
+	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import type { Snippet } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 
@@ -12,6 +13,7 @@
 		title,
 		subtitle,
 		icon,
+		onBack,
 		children,
 		contentClass = 'sm:max-w-lg',
 		iconContainerClass = 'bg-muted rounded-lg p-2',
@@ -22,6 +24,7 @@
 		title: string;
 		subtitle?: string;
 		icon?: Snippet;
+		onBack?: () => void;
 		children: Snippet;
 		contentClass?: string;
 		iconContainerClass?: string;
@@ -35,7 +38,15 @@
 		<DialogContent class={contentClass}>
 			<DialogHeader class={cn('space-y-1', headerClass)}>
 				<div class="flex items-center gap-3">
-					{#if icon}
+					{#if onBack}
+						<button
+							type="button"
+							class="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+							onclick={onBack}
+						>
+							<ArrowLeftIcon class="size-5" />
+						</button>
+					{:else if icon}
 						<div class={iconContainerClass}>
 							{@render icon()}
 						</div>
@@ -59,7 +70,15 @@
 		<DrawerContent class="max-h-[90vh]">
 			<DrawerHeader class={cn('text-left', headerClass)}>
 				<div class="flex items-center gap-3">
-					{#if icon}
+					{#if onBack}
+						<button
+							type="button"
+							class="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+							onclick={onBack}
+						>
+							<ArrowLeftIcon class="size-5" />
+						</button>
+					{:else if icon}
 						<div class={iconContainerClass}>
 							{@render icon()}
 						</div>
