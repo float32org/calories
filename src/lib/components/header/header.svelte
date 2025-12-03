@@ -1,10 +1,21 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { Button } from '$lib/components/ui/button';
 	import HamburgerIcon from '@lucide/svelte/icons/hamburger';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
+	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import type { User } from 'better-auth';
 	import HeaderUserMenu from './header-user-menu.svelte';
 
-	let { user }: { user: User } = $props();
+	let {
+		user,
+		onSettingsClick,
+		onAssistantClick
+	}: {
+		user: User;
+		onSettingsClick?: () => void;
+		onAssistantClick?: () => void;
+	} = $props();
 </script>
 
 <header class="bg-background sticky top-0 z-50 w-full px-4 transition-all">
@@ -19,7 +30,17 @@
 				Calories
 			</a>
 		</div>
-		<div class="flex items-center gap-2">
+		<div class="flex items-center gap-1">
+			{#if onAssistantClick}
+				<Button variant="outline" size="icon" class="size-8" onclick={onAssistantClick}>
+					<SparklesIcon class="size-4 text-muted-foreground" />
+				</Button>
+			{/if}
+			{#if onSettingsClick}
+				<Button variant="outline" size="icon" class="size-8" onclick={onSettingsClick}>
+					<SettingsIcon class="size-4 text-muted-foreground" />
+				</Button>
+			{/if}
 			<HeaderUserMenu {user} />
 		</div>
 	</div>

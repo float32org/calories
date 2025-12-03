@@ -21,15 +21,17 @@
 	} from '$lib/components/ui/dropdown-menu';
 	import { addMeal, deleteMeal, getMeals, updateMeal } from '$lib/remote/meals.remote';
 	import { getSettings } from '$lib/remote/settings.remote';
+	import { getWaterForDate, updateWater } from '$lib/remote/water.remote';
 	import { getLatestWeight, getWeightForDate, logWeight } from '$lib/remote/weight.remote';
+	import { assistantOpen, settingsOpen } from '$lib/stores/ui.store';
 	import { formatDate, formatTime, getDisplayDate } from '$lib/utils/format';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import DropletIcon from '@lucide/svelte/icons/droplet';
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import PlusIcon from '@lucide/svelte/icons/plus';
-	import SettingsIcon from '@lucide/svelte/icons/settings';
-	import SparklesIcon from '@lucide/svelte/icons/sparkles';
+	import ScaleIcon from '@lucide/svelte/icons/scale';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import UtensilsIcon from '@lucide/svelte/icons/utensils';
 	import { toast } from 'svelte-sonner';
@@ -59,8 +61,6 @@
 	let isEditModalOpen = $state(false);
 	let isDatePickerOpen = $state(false);
 	let isWeightModalOpen = $state(false);
-	let isSettingsOpen = $state(false);
-	let isAssistantOpen = $state(false);
 
 	let wasDatePickerOpen = $state(false);
 	$effect(() => {
@@ -100,6 +100,12 @@
 	let weightGoal = $derived(settings?.weightGoal ?? null);
 	let weightUnit = $derived(settings?.weightUnit ?? 'lbs');
 	let currentWeight = $derived(latestWeight?.weight ?? null);
+	let weightAtGoal = $derived(
+		weightGoal !== null && currentWeight !== null && currentWeight <= weightGoal
+	);
+	let weightToGo = $derived(
+		weightGoal !== null && currentWeight !== null ? currentWeight - weightGoal : 0
+	);
 
 	let history = $derived.by(() => {
 		const historyMap = new SvelteMap<string, number>();
@@ -128,6 +134,31 @@
 		carbsConsumed: totalCarbs,
 		fatConsumed: totalFat
 	});
+
+	// Water tracking
+	let useOz = $derived(weightUnit === 'lbs');
+	let waterUnit = $derived(useOz ? 'oz' : 'ml');
+
+	// Amounts for buttons based on unit
+	let waterSmallAmount = $derived(useOz ? 8 : 250);
+	let waterLargeAmount = $derived(useOz ? 16 : 500);
+	let waterGoalDisplay = $derived(useOz ? 64 : 2000);
+
+	const waterForSelectedDate = $derived(getWaterForDate(selectedDateStr).current);
+	let waterConsumed = $derived(waterForSelectedDate?.amount ?? 0);
+	let waterPercent = $derived(Math.min((waterConsumed / waterGoalDisplay) * 100, 100));
+
+	async function addWater(amount: number) {
+		try {
+			await updateWater({
+				amount,
+				date: selectedDateStr
+			}).updates(getWaterForDate(selectedDateStr));
+		} catch (err) {
+			console.error('Failed to update water:', err);
+			toast.error('Failed to update water');
+		}
+	}
 
 	function handleDateChange(days: number) {
 		selectedDate.setDate(selectedDate.getDate() + days);
@@ -264,104 +295,164 @@
 							thickness={16}
 						/>
 
-						{#if currentDayMeals.length > 0}
-							<div class="mt-2 flex items-center gap-8" transition:slide>
-								<div class="flex flex-col items-center">
-									<span class="text-lg font-bold text-blue-500 dark:text-blue-400"
-										>{totalProtein}g</span
-									>
-									<span
-										class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
-										>Protein</span
-									>
-								</div>
-								<div class="h-8 w-px bg-border/50"></div>
-								<div class="flex flex-col items-center">
-									<span class="text-lg font-bold text-amber-500 dark:text-amber-400"
-										>{totalCarbs}g</span
-									>
-									<span
-										class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
-										>Carbs</span
-									>
-								</div>
-								<div class="h-8 w-px bg-border/50"></div>
-								<div class="flex flex-col items-center">
-									<span class="text-lg font-bold text-rose-500 dark:text-rose-400">{totalFat}g</span
-									>
-									<span
-										class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
-										>Fat</span
-									>
-								</div>
+						<div class="mt-2 flex items-center gap-8">
+							<div class="flex flex-col items-center">
+								<span class="text-lg font-bold text-blue-500 dark:text-blue-400"
+									>{totalProtein}g</span
+								>
+								<span
+									class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
+									>Protein</span
+								>
 							</div>
-						{/if}
-					</div>
-					<div class="mt-4 flex w-full flex-col gap-2">
-						<div class="grid grid-cols-2 gap-3">
-							<button
-								class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
-								onclick={() => (isSettingsOpen = true)}
-							>
-								<div class="bg-background shrink-0 rounded-full p-2 shadow-sm">
-									<SettingsIcon
-										class="text-muted-foreground group-hover:text-foreground size-4 transition-colors"
-									/>
-								</div>
-								<div class="min-w-0 flex-1">
-									<span class="block text-xs font-bold text-foreground">Settings</span>
-									<span class="block truncate text-[10px] font-medium text-muted-foreground">
-										{calorieGoal} kcal goal
-									</span>
-								</div>
-							</button>
-							<button
-								class="bg-muted/30 hover:bg-muted/50 group flex items-center gap-3 rounded-xl p-3 text-left transition-colors"
-								onclick={() => (isWeightModalOpen = true)}
-							>
-								<div class="bg-background shrink-0 rounded-full p-2 shadow-sm">
-									<UtensilsIcon
-										class="text-muted-foreground group-hover:text-foreground size-4 transition-colors"
-									/>
-								</div>
-								<div class="min-w-0 flex-1">
-									<span class="block text-xs font-bold text-foreground">Weight</span>
-									<span class="block truncate text-[10px] font-medium text-muted-foreground">
-										{weightForSelectedDate?.weight
-											? `${weightForSelectedDate.weight} ${weightUnit}`
-											: 'Log weight'}
-									</span>
-								</div>
-							</button>
-						</div>
-						<div class="grid grid-cols-2 gap-3">
-							<Button
-								size="lg"
-								class="h-12 w-full rounded-xl bg-primary font-bold shadow-sm transition-all active:scale-[0.98]"
-								onclick={() => (isAddModalOpen = true)}
-							>
-								<PlusIcon class="size-5" />
-								Log Meal
-							</Button>
-							<Button
-								size="lg"
-								variant="secondary"
-								class="h-12 w-full rounded-xl font-bold shadow-sm transition-all active:scale-[0.98]"
-								onclick={() => (isAssistantOpen = true)}
-							>
-								<SparklesIcon class="size-5" />
-								Ask Assistant
-							</Button>
+							<div class="h-8 w-px bg-border/50"></div>
+							<div class="flex flex-col items-center">
+								<span class="text-lg font-bold text-amber-500 dark:text-amber-400"
+									>{totalCarbs}g</span
+								>
+								<span
+									class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
+									>Carbs</span
+								>
+							</div>
+							<div class="h-8 w-px bg-border/50"></div>
+							<div class="flex flex-col items-center">
+								<span class="text-lg font-bold text-rose-500 dark:text-rose-400">{totalFat}g</span>
+								<span
+									class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60"
+									>Fat</span
+								>
+							</div>
 						</div>
 					</div>
 				</div>
-				<div class="flex min-h-0 flex-1 flex-col gap-2">
-					<h2 class="shrink-0 flex items-center gap-2 text-lg font-bold">
-						Meals
-						<span class="bg-muted text-muted-foreground rounded-full px-2 py-1 text-xs font-medium"
-							>{currentDayMeals.length}</span
+
+				<!-- Weight Tracker -->
+				<button
+					class="shrink-0 flex items-center gap-3 rounded-xl bg-muted/30 p-3 text-left transition-colors hover:bg-muted/50"
+					onclick={() => (isWeightModalOpen = true)}
+				>
+					<div class="relative size-12 shrink-0">
+						<svg class="size-full -rotate-90" viewBox="0 0 40 40">
+							<circle cx="20" cy="20" r="16" fill="none" class="stroke-muted" stroke-width="3" />
+							{#if weightAtGoal}
+								<circle
+									cx="20"
+									cy="20"
+									r="16"
+									fill="none"
+									class="stroke-emerald-500 transition-all duration-300"
+									stroke-width="3"
+									stroke-linecap="round"
+									stroke-dasharray={2 * Math.PI * 16}
+									stroke-dashoffset={0}
+								/>
+							{/if}
+						</svg>
+						<ScaleIcon
+							class="absolute inset-0 m-auto size-5 {weightAtGoal
+								? 'text-emerald-500'
+								: 'text-muted-foreground'}"
+						/>
+					</div>
+					<div class="flex-1 min-w-0">
+						<div class="flex items-baseline gap-1">
+							<span class="text-lg font-bold tabular-nums">
+								{weightForSelectedDate?.weight ?? currentWeight ?? '—'}
+							</span>
+							<span class="text-xs text-muted-foreground">
+								{#if weightGoal}/ {weightGoal} {weightUnit}{:else}{weightUnit}{/if}
+							</span>
+						</div>
+						<span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+							{#if weightForSelectedDate?.weight}
+								Weight logged
+							{:else if !currentWeight}
+								Tap to log weight
+							{:else if weightAtGoal}
+								Goal reached!
+							{:else}
+								{weightToGo.toFixed(1)} {weightUnit} to go
+							{/if}
+						</span>
+					</div>
+				</button>
+
+				<!-- Water Tracker -->
+				<div class="shrink-0 flex items-center gap-3 rounded-xl bg-muted/30 p-3">
+					<div class="relative size-12 shrink-0">
+						<svg class="size-full -rotate-90" viewBox="0 0 40 40">
+							<circle cx="20" cy="20" r="16" fill="none" class="stroke-muted" stroke-width="3" />
+							<circle
+								cx="20"
+								cy="20"
+								r="16"
+								fill="none"
+								class="stroke-blue-500 transition-all duration-300"
+								stroke-width="3"
+								stroke-linecap="round"
+								stroke-dasharray={2 * Math.PI * 16}
+								stroke-dashoffset={2 * Math.PI * 16 * (1 - waterPercent / 100)}
+							/>
+						</svg>
+						<DropletIcon class="absolute inset-0 m-auto size-5 text-blue-500" />
+					</div>
+					<div class="flex-1 min-w-0">
+						<div class="flex items-baseline gap-1">
+							<span class="text-lg font-bold tabular-nums">{waterConsumed}</span>
+							<span class="text-xs text-muted-foreground">/ {waterGoalDisplay}{waterUnit}</span>
+						</div>
+						<span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+							Water intake
+						</span>
+					</div>
+					<div class="flex gap-1">
+						<Button
+							size="sm"
+							variant="ghost"
+							class="size-8 rounded-lg px-0 text-xs font-semibold text-muted-foreground hover:text-foreground"
+							onclick={() => addWater(-waterSmallAmount)}
+							disabled={waterConsumed === 0}
 						>
-					</h2>
+							−
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							class="h-8 rounded-lg px-2 text-xs font-semibold"
+							onclick={() => addWater(waterSmallAmount)}
+						>
+							+{waterSmallAmount}
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							class="h-8 rounded-lg px-2 text-xs font-semibold"
+							onclick={() => addWater(waterLargeAmount)}
+						>
+							+{waterLargeAmount}
+						</Button>
+					</div>
+				</div>
+
+				<div class="flex min-h-0 flex-1 flex-col gap-2">
+					<div class="shrink-0 flex items-center justify-between">
+						<h2 class="flex items-center gap-2 text-lg font-bold">
+							Meals
+							<span
+								class="bg-muted text-muted-foreground rounded-full px-2 py-1 text-xs font-medium"
+								>{currentDayMeals.length}</span
+							>
+						</h2>
+						<Button
+							size="sm"
+							class="h-8 rounded-lg font-semibold"
+							onclick={() => (isAddModalOpen = true)}
+						>
+							<PlusIcon class="size-4" />
+							Log Meal
+						</Button>
+					</div>
 					<div class="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
 						{#if currentDayMeals.length === 0}
 							<div
@@ -501,7 +592,7 @@
 		date={selectedDate}
 	/>
 	<SettingsDialog
-		bind:open={isSettingsOpen}
+		bind:open={$settingsOpen}
 		currentCalorieGoal={calorieGoal}
 		currentWeightGoal={weightGoal}
 		{currentWeight}
@@ -509,7 +600,7 @@
 		onSave={() => getSettings().refresh()}
 	/>
 	<FoodAssistantDialog
-		bind:open={isAssistantOpen}
+		bind:open={$assistantOpen}
 		context={assistantContext}
 		onLogMeal={handleAddMeal}
 	/>

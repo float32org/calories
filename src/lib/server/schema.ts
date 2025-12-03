@@ -161,6 +161,28 @@ export const weightLogs = pgTable(
 	(table) => [index('weight_logs_user_id_idx').on(table.userId)]
 );
 
+export const waterLogs = pgTable(
+	'water_logs',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		amount: integer('amount').notNull(),
+		date: text('date').notNull(),
+		createdAt: timestamp('created_at')
+			.$defaultFn(() => new Date())
+			.notNull(),
+		updatedAt: timestamp('updated_at')
+			.$defaultFn(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		index('water_logs_user_id_idx').on(table.userId),
+		index('water_logs_date_idx').on(table.date)
+	]
+);
+
 export const foodPreferences = pgTable(
 	'food_preferences',
 	{
