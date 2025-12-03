@@ -82,14 +82,18 @@
 				</span>
 			</div>
 			<span class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-				{#if weightForDate?.weight}
-					Weight logged
-				{:else if !currentWeight}
+				{#if !currentWeight}
 					Tap to log weight
+				{:else if weightForDate?.weight}
+					{#if weightAtGoal}
+						Logged · Goal reached!
+					{:else}
+						Logged · {weightToGo.toFixed(1)} {weightUnit} to go
+					{/if}
 				{:else if weightAtGoal}
-					Goal reached!
+					Not logged · Goal reached!
 				{:else}
-					{weightToGo.toFixed(1)} {weightUnit} to go
+					Not logged · {weightToGo.toFixed(1)} {weightUnit} to go
 				{/if}
 			</span>
 		{/key}
