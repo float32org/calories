@@ -1,41 +1,23 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { CalorieSummary } from '$lib/components/calorie-summary';
-	import {
-		AddMealDialog,
-		DatePickerDialog,
-		EditMealDialog,
-		FoodAssistantDialog,
-		SettingsDialog
-	} from '$lib/components/dialog';
+	import { DatePickerDialog, FoodAssistantDialog, SettingsDialog } from '$lib/components/dialog';
+	import { MealsList } from '$lib/components/meals-list';
 	import { WaterTracker } from '$lib/components/water-tracker';
 	import { WeightTracker } from '$lib/components/weight-tracker';
 	import { Button } from '$lib/components/ui/button';
-	import {
-		DropdownMenu,
-		DropdownMenuContent,
-		DropdownMenuItem,
-		DropdownMenuTrigger
-	} from '$lib/components/ui/dropdown-menu';
-	import { addMeal, deleteMeal, getMeals, updateMeal } from '$lib/remote/meals.remote';
+	import { addMeal, getMeals } from '$lib/remote/meals.remote';
 	import { getProfile } from '$lib/remote/profile.remote';
 	import { getWaterForDate } from '$lib/remote/water.remote';
 	import { getLatestWeight } from '$lib/remote/weight.remote';
 	import { assistantOpen, settingsOpen } from '$lib/stores/ui.store';
-	import { formatDate, formatTime, getDisplayDate } from '$lib/utils/format';
+	import { formatDate, getDisplayDate } from '$lib/utils/format';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
-	import PencilIcon from '@lucide/svelte/icons/pencil';
-	import PlusIcon from '@lucide/svelte/icons/plus';
-	import Trash2Icon from '@lucide/svelte/icons/trash-2';
-	import UtensilsIcon from '@lucide/svelte/icons/utensils';
 	import { toast } from 'svelte-sonner';
 	import { SvelteDate, SvelteMap } from 'svelte/reactivity';
-	import { slide } from 'svelte/transition';
 
 	function parseDateParam(param: string | null): Date {
 		if (!param) return new Date();
@@ -56,8 +38,6 @@
 			goto(`/?d=${dateStr}`, { replaceState: true, keepFocus: true, noScroll: true });
 		}
 	}
-	let isAddModalOpen = $state(false);
-	let isEditModalOpen = $state(false);
 	let isDatePickerOpen = $state(false);
 
 	let wasDatePickerOpen = $state(false);
@@ -67,16 +47,6 @@
 		}
 		wasDatePickerOpen = isDatePickerOpen;
 	});
-
-	let editingMeal = $state<{
-		id: string;
-		name: string;
-		calories: number;
-		servings?: number;
-		protein?: number;
-		carbs?: number;
-		fat?: number;
-	} | null>(null);
 
 	const initialMeals = await getMeals();
 	const initialProfile = await getProfile();
@@ -178,35 +148,6 @@
 			toast.error('Failed to log meal');
 		}
 	}
-
-	async function handleUpdateMeal(meal: {
-		id: string;
-		name: string;
-		calories: number;
-		servings?: number;
-		protein?: number;
-		carbs?: number;
-		fat?: number;
-	}) {
-		try {
-			await updateMeal({
-				...meal,
-				servings: meal.servings ?? 1
-			}).updates(getMeals());
-		} catch (err) {
-			console.error('Failed to update meal:', err);
-			toast.error('Failed to update meal');
-		}
-	}
-
-	async function handleDeleteMeal(id: string) {
-		try {
-			await deleteMeal(id).updates(getMeals());
-		} catch (err) {
-			console.error('Failed to delete meal:', err);
-			toast.error('Failed to delete meal');
-		}
-	}
 </script>
 
 <svelte:head>
@@ -253,154 +194,11 @@
 				<!-- Water Tracker -->
 				<WaterTracker date={selectedDateStr} />
 
-				<div class="flex min-h-0 flex-1 flex-col gap-2">
-					<div class="shrink-0 flex items-center justify-between">
-						<h2 class="flex items-center gap-2 text-lg font-bold">
-							Meals
-							<span
-								class="bg-muted text-muted-foreground rounded-full px-2 py-1 text-xs font-medium"
-								>{currentDayMeals.length}</span
-							>
-						</h2>
-						<Button
-							size="sm"
-							class="h-8 rounded-lg font-semibold"
-							onclick={() => (isAddModalOpen = true)}
-						>
-							<PlusIcon class="size-4" />
-							Log Meal
-						</Button>
-					</div>
-					<div class="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
-						{#if currentDayMeals.length === 0}
-							<div
-								class="text-muted-foreground bg-muted/10 border-muted rounded-3xl border border-dashed py-12 text-center"
-							>
-								<div
-									class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted"
-								>
-									<UtensilsIcon class="size-6 opacity-50" />
-								</div>
-								<p class="font-medium">No meals logged yet</p>
-								<p class="text-sm text-muted-foreground">Add your first meal to start tracking</p>
-							</div>
-						{:else}
-							<div class="space-y-2 pb-4">
-								{#each currentDayMeals as meal, i (meal.id)}
-									<div
-										transition:slide={{ duration: 200 }}
-										class="group relative overflow-hidden rounded-2xl bg-muted/30 transition-colors hover:bg-muted/50"
-									>
-										<div class="flex items-stretch">
-											<div
-												class="w-1 shrink-0 rounded-l-2xl"
-												style="background-color: var(--chart-{(i % 5) + 1})"
-											></div>
-											<div class="relative w-20 shrink-0">
-												{#if meal.image}
-													<img
-														src={meal.image}
-														alt={meal.name}
-														class="absolute inset-0 h-full w-full object-cover"
-													/>
-												{:else}
-													<div
-														class="absolute inset-0 flex items-center justify-center bg-linear-to-br from-muted/80 to-muted/40"
-													>
-														<UtensilsIcon class="size-5 text-muted-foreground/30" />
-													</div>
-												{/if}
-											</div>
-											<div class="flex min-w-0 flex-1 flex-col justify-center gap-2 p-3">
-												<div class="flex items-start justify-between gap-2">
-													<div class="min-w-0 flex-1">
-														<h3 class="font-bold leading-snug text-foreground line-clamp-1">
-															{meal.name}
-														</h3>
-														<p class="text-[11px] text-muted-foreground">
-															{#if browser}
-																{formatTime(meal.timestamp)}
-															{/if}
-														</p>
-													</div>
-													<DropdownMenu>
-														<DropdownMenuTrigger
-															class="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-muted hover:text-foreground sm:opacity-0 sm:focus:opacity-100 sm:group-hover:opacity-100"
-														>
-															<EllipsisIcon class="size-4" />
-														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end">
-															<DropdownMenuItem
-																onclick={() => {
-																	editingMeal = {
-																		id: meal.id,
-																		name: meal.name,
-																		calories: meal.calories,
-																		servings: meal.servings,
-																		protein: meal.protein ?? undefined,
-																		carbs: meal.carbs ?? undefined,
-																		fat: meal.fat ?? undefined
-																	};
-																	isEditModalOpen = true;
-																}}
-															>
-																<PencilIcon class="mr-2 size-4" />
-																Edit
-															</DropdownMenuItem>
-															<DropdownMenuItem
-																class="text-destructive focus:text-destructive"
-																onclick={() => handleDeleteMeal(meal.id)}
-															>
-																<Trash2Icon class="mr-2 size-4" />
-																Delete
-															</DropdownMenuItem>
-														</DropdownMenuContent>
-													</DropdownMenu>
-												</div>
-												<div class="flex items-center justify-between gap-3">
-													<div class="flex items-center gap-1">
-														<span
-															class="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-500 dark:bg-blue-400/10 dark:text-blue-400"
-														>
-															{meal.protein ?? 0}g P
-														</span>
-														<span
-															class="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500 dark:bg-amber-400/10 dark:text-amber-400"
-														>
-															{meal.carbs ?? 0}g C
-														</span>
-														<span
-															class="rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-500 dark:bg-rose-400/10 dark:text-rose-400"
-														>
-															{meal.fat ?? 0}g F
-														</span>
-													</div>
-													<div
-														class="flex items-baseline gap-0.5 rounded-lg bg-foreground/5 px-2 py-1"
-													>
-														<span class="text-base font-bold tabular-nums leading-none"
-															>{meal.calories}</span
-														>
-														<span
-															class="text-[9px] font-bold uppercase tracking-wide text-muted-foreground"
-															>kcal</span
-														>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				</div>
+				<MealsList date={selectedDateStr} />
 			</div>
 		</div>
 	</div>
 
-	<AddMealDialog bind:open={isAddModalOpen} onAdd={handleAddMeal} />
-	<EditMealDialog bind:open={isEditModalOpen} meal={editingMeal} onSave={handleUpdateMeal} />
 	<DatePickerDialog bind:open={isDatePickerOpen} date={selectedDate} {history} />
 	<SettingsDialog
 		bind:open={$settingsOpen}
