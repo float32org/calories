@@ -12,7 +12,7 @@
 		onGoalsClick,
 		onAssistantClick
 	}: {
-		user: User;
+		user?: User;
 		onGoalsClick?: () => void;
 		onAssistantClick?: () => void;
 	} = $props();
@@ -30,18 +30,20 @@
 				Calories
 			</a>
 		</div>
-		<div class="flex items-center gap-1">
-			{#if onAssistantClick}
-				<Button variant="outline" size="icon" class="size-8" onclick={onAssistantClick}>
-					<SparklesIcon class="size-4 text-muted-foreground" />
-				</Button>
-			{/if}
-			{#if onGoalsClick}
-				<Button variant="outline" size="icon" class="size-8" onclick={onGoalsClick}>
-					<GoalIcon class="size-4 text-muted-foreground" />
-				</Button>
-			{/if}
-			<HeaderUserMenu {user} />
-		</div>
+		{#if user}
+			<div class="flex items-center gap-1">
+				{#if onAssistantClick}
+					<Button variant="outline" size="icon" class="size-8" onclick={onAssistantClick}>
+						<SparklesIcon class="size-4 text-muted-foreground" />
+					</Button>
+				{/if}
+				{#if onGoalsClick}
+					<Button variant="outline" size="icon" class="size-8" onclick={onGoalsClick}>
+						<GoalIcon class="size-4 text-muted-foreground" />
+					</Button>
+				{/if}
+				<HeaderUserMenu {user} />
+			</div>
+		{/if}
 	</div>
 </header>
