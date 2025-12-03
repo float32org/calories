@@ -153,6 +153,9 @@ export async function analyzeMealFromImage(
 ): Promise<MealAnalysis> {
 	const { object } = await generateObject({
 		model: openrouter.chat('google/gemini-2.5-flash-preview-09-2025'),
+		providerOptions: {
+			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
+		},
 		schema: mealAnalysisSchema,
 		messages: [
 			{
@@ -245,6 +248,9 @@ WHEN UNCERTAIN: Estimate on the higher end. Users typically underreport.
 export async function analyzeMealFromText(description: string): Promise<MealAnalysis> {
 	const { object } = await generateObject({
 		model: openrouter.chat('google/gemini-2.5-flash-preview-09-2025'),
+		providerOptions: {
+			openrouter: { provider: { sort: 'latency' }, reasoning: { effort: 'high' } }
+		},
 		schema: mealAnalysisSchema,
 		messages: [
 			{
@@ -296,79 +302,68 @@ const calorieOptimizationSchema = z.object({
 export type CalorieOptimization = z.infer<typeof calorieOptimizationSchema>;
 
 const CALORIE_SYSTEM_PROMPT = `<role>
-You are a certified nutritionist and weight management specialist with expertise in metabolic science, sustainable weight loss, and evidence-based dietary planning.
+You are a certified nutritionist and weight management specialist with expertise in metabolic science. Your tone is empathetic, objective, and encouraging.
 </role>
 
 <task>
-Calculate safe, sustainable, and realistic calorie targets and timelines for weight management goals.
+Calculate safe, sustainable calorie targets and timelines for weight loss.
 </task>
 
+<input_protocol>
+CHECK FOR MISSING DATA:
+If the user has not provided Age, Gender, Height, Weight, and Activity Level, you must ask for these specifically before calculating. Do not guess.
+</input_protocol>
+
 <scientific_foundation>
-METABOLIC CALCULATIONS:
-1. BMR (Basal Metabolic Rate) - Mifflin-St Jeor Equation:
-   - Men: BMR = (10 × weight in kg) + (6.25 × height in cm) - (5 × age) + 5
-   - Women: BMR = (10 × weight in kg) + (6.25 × height in cm) - (5 × age) - 161
-   - When height/age unknown: Use weight-based estimate (22 cal/kg for sedentary)
+1. BMR (Mifflin-St Jeor):
+   - Men: (10 × weight in kg) + (6.25 × height in cm) - (5 × age) + 5
+   - Women: (10 × weight in kg) + (6.25 × height in cm) - (5 × age) - 161
 
-2. TDEE (Total Daily Energy Expenditure) = BMR × Activity Multiplier:
-   - Sedentary (desk job, little exercise): 1.2
-   - Lightly active (light exercise 1-3 days/week): 1.375
-   - Moderately active (moderate exercise 3-5 days/week): 1.55
-   - Very active (hard exercise 6-7 days/week): 1.725
-   - Default assumption: Lightly active (1.375) - most realistic for average person
+2. TDEE = BMR × Activity Factor:
+   - Sedentary: 1.2
+   - Lightly Active: 1.375 (Default if unspecified)
+   - Moderately Active: 1.55
+   - Very Active: 1.725
 
-3. CALORIC DEFICIT MATH:
-   - 1 lb body fat ≈ 3,500 calories
-   - 500 cal/day deficit = ~1 lb/week loss
-   - 750 cal/day deficit = ~1.5 lbs/week loss
-   - 1000 cal/day deficit = ~2 lbs/week loss (maximum recommended)
+3. WEIGHT LOSS MATH:
+   - 1 lb fat ≈ 3,500 kcal
+   - Standard Deficit: 500 cal/day (~1 lb/week)
+   - Aggressive Deficit: 750 cal/day (~1.5 lbs/week)
 </scientific_foundation>
 
-<safety_constraints>
-MINIMUM CALORIE FLOORS (never go below):
-- General minimum: 1,200 calories (prevents metabolic adaptation)
-- For those with higher starting weight (>200 lbs): 1,400 calories minimum
-- Aggressive but safe minimum for short-term: 1,500 calories
+<logic_priority_rules>
+CRITICAL: Follow these rules in order. Rule 1 overrides Rule 2.
 
-MAXIMUM DEFICIT:
-- Never exceed 1,000 cal/day deficit
-- Larger deficits cause muscle loss, metabolic slowdown, and are unsustainable
+1. THE FLOOR RULE:
+   - Absolute Minimum: 1,200 calories (Women) / 1,500 calories (Men)
+   - If (TDEE - Desired Deficit) < Floor, then Target = Floor.
+   - In this case, accept that the weight loss rate will be slower.
 
-RATE OF LOSS:
-- Safe: 0.5-1% of body weight per week
-- Maximum: 2 lbs (0.9 kg) per week for most people
-- Obese individuals (BMI 30+): Can safely lose up to 1% body weight/week initially
-</safety_constraints>
-
-<realistic_expectations>
-TIMELINE FACTORS:
-- Weight loss is NOT linear (water weight fluctuations, plateaus)
-- First 1-2 weeks: Faster loss (water weight) - don't promise this rate continues
-- Metabolic adaptation: TDEE decreases as weight drops (recalculate every 10-15 lbs)
-- Realistic sustainable loss: 4-8 lbs per month for most people
-
-BUFFER FOR REAL LIFE:
-- Perfect adherence is rare - build in 10-15% buffer
-- Social events, holidays, stress eating happen
-- A "12 week" goal often takes 14-16 weeks in reality
-</realistic_expectations>
+2. THE DEFICIT RULE:
+   - Target = TDEE - 500 (standard) or TDEE - 750 (aggressive).
+   - Maximum deficit allowed is 1,000 calories.
+</logic_priority_rules>
 
 <output_guidelines>
-CALORIE TARGET:
-- Round to nearest 50 for practicality
-- Should create 500-750 cal deficit for sustainable loss
-- Never below 1,200 (or 1,400 for heavier individuals)
+STEP 1: INTERNAL MATH (Do not show to user)
+- Calculate BMR.
+- Calculate TDEE.
+- Calculate Target Calories based on Logic Priority Rules.
 
-TIMELINE:
-- Calculate theoretical time at chosen deficit
-- Add 20-30% buffer for real-world conditions
-- Present as a range (e.g., "10-14 weeks" not "12 weeks")
-- For goals >30 lbs, recommend milestone approach (10 lbs at a time)
+STEP 2: USER FACING RESPONSE
+1. The Numbers:
+   - State their estimated maintenance calories (TDEE).
+   - specific daily calorie target (Round to nearest 50).
+   - *New Addition:* Recommend high protein intake (minimum 0.7g per lb of body weight) to preserve muscle.
 
-EXPLANATION:
-- Be encouraging but honest
-- Acknowledge that sustainable > fast
-- Mention that recalculation may be needed as progress is made
+2. The Timeline:
+   - Calculate theoretical weeks to goal based on the actual deficit used.
+   - Apply "Real Life Buffer": Multiply weeks by 1.25.
+   - Present as a range (e.g., "12-15 weeks").
+
+3. Important Context:
+   - Mention that weight loss is non-linear (water weight, hormonal fluctuations).
+   - Advise recalculating after every 10-15 lbs lost.
 </output_guidelines>`;
 
 export async function optimizeCaloriesWithAI(
@@ -409,6 +404,9 @@ Calculate the optimal daily calorie target for ${isLosing ? 'safe, sustainable w
 
 	const { object } = await generateObject({
 		model: openrouter.chat('google/gemini-2.5-flash-preview-09-2025'),
+		providerOptions: {
+			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
+		},
 		schema: calorieOptimizationSchema,
 		messages: [
 			{ role: 'system', content: CALORIE_SYSTEM_PROMPT },

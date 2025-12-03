@@ -23,7 +23,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user || !locals.session) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
-
 	const userId = locals.user.id;
 
 	try {
@@ -41,7 +40,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			return json({ error: 'Messages are required' }, { status: 400 });
 		}
 
-		// Fetch user preferences from database
 		const userPreferences = await db
 			.select()
 			.from(foodPreferences)
@@ -66,6 +64,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 				execute: async ({ writer }) => {
 					const result = streamText({
 						model: openrouter.chat('google/gemini-2.5-flash-preview-09-2025'),
+						providerOptions: {
+							openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
+						},
 						system: systemPrompt,
 						messages: convertToModelMessages(messages),
 						tools: assistantTools,

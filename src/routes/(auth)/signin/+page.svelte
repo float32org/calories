@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { signIn } from '$lib/auth';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button } from '$lib/components/ui/button';
 	import HamburgerIcon from '@lucide/svelte/icons/hamburger';
 	import { toast } from 'svelte-sonner';
 
@@ -41,7 +41,6 @@
 					<p class="text-sm text-muted-foreground">Track your nutrition simply</p>
 				</div>
 			</a>
-
 			<div
 				class="w-full flex flex-col gap-4 rounded-3xl bg-card/50 p-6 sm:p-8 border border-border/50 shadow-sm"
 			>
@@ -49,7 +48,6 @@
 					<h2 class="font-bold text-lg">Welcome back</h2>
 					<p class="text-xs text-muted-foreground">Sign in to your account to continue</p>
 				</div>
-
 				<Button
 					variant="outline"
 					class="w-full h-12 rounded-xl font-bold gap-3 bg-background hover:bg-muted/50 border-border/50 transition-all"
@@ -72,7 +70,6 @@
 					Continue with Google
 				</Button>
 			</div>
-
 			<p class="text-center text-[10px] text-muted-foreground/50 px-8">
 				By continuing, you agree to our Terms of Service and Privacy Policy.
 			</p>

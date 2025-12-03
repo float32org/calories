@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import CalorieRadialChart from '$lib/components/calorie-radial-chart.svelte';
 	import {
@@ -49,7 +50,7 @@
 		const dateStr = formatDate(date);
 
 		if (dateStr === todayStr) {
-			goto('/', { replaceState: true, keepFocus: true, noScroll: true });
+			goto(resolve('/'), { replaceState: true, keepFocus: true, noScroll: true });
 		} else {
 			goto(`/?d=${dateStr}`, { replaceState: true, keepFocus: true, noScroll: true });
 		}

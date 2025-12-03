@@ -95,10 +95,13 @@ export const settings = pgTable(
 			.notNull()
 			.unique()
 			.references(() => users.id, { onDelete: 'cascade' }),
+		stripeCustomerId: text('stripe_customer_id'),
 		calorieGoal: integer('calorie_goal').default(2200).notNull(),
 		weightGoal: real('weight_goal'),
 		weightUnit: text('weight_unit').default('lbs').notNull(),
 		onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
+		paid: boolean('paid').default(false).notNull(),
+		paidAt: timestamp('paid_at'),
 		createdAt: timestamp('created_at')
 			.$defaultFn(() => new Date())
 			.notNull(),

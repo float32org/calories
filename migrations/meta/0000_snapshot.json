@@ -1,5 +1,5 @@
 {
-	"id": "3bcc495d-5290-46bd-807c-a1900dc3848f",
+	"id": "a9d8f6f1-0fe6-4428-b12c-cf745771933e",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
@@ -494,6 +494,12 @@
 					"primaryKey": false,
 					"notNull": true
 				},
+				"stripe_customer_id": {
+					"name": "stripe_customer_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
 				"calorie_goal": {
 					"name": "calorie_goal",
 					"type": "integer",
@@ -520,6 +526,19 @@
 					"primaryKey": false,
 					"notNull": true,
 					"default": false
+				},
+				"paid": {
+					"name": "paid",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": false
+				},
+				"paid_at": {
+					"name": "paid_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": false
 				},
 				"created_at": {
 					"name": "created_at",

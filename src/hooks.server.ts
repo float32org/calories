@@ -1,25 +1,46 @@
 import { building } from '$app/environment';
+import { hasAccess, isHostedMode } from '$lib/server/access';
 import { auth } from '$lib/server/auth';
+import { db } from '$lib/server/db';
+import { settings } from '$lib/server/schema';
 import { type Handle, redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
+import { eq } from 'drizzle-orm';
 
 const authHandler: Handle = async ({ event, resolve }) => {
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 
 const authRedirect: Handle = async ({ event, resolve }) => {
+	const { pathname } = event.url;
+
+	const publicRoutes = ['/signin', '/checkout', '/checkout/success'];
+	const isPublicRoute = publicRoutes.some((route) => pathname === route);
+	const isWebhook = pathname.startsWith('/api/webhook');
+
 	const session = await auth.api.getSession({
 		headers: event.request.headers
 	});
 
 	if (session) {
-		if (event.url.pathname === '/signin') {
-			return redirect(303, '/');
-		}
 		event.locals.session = session.session;
 		event.locals.user = session.user;
-	} else if (event.url.pathname !== '/signin') {
+
+		if (pathname === '/signin') {
+			return redirect(303, '/');
+		}
+
+		if (isHostedMode() && !isPublicRoute && !isWebhook) {
+			const userSettings = await db.query.settings.findFirst({
+				where: eq(settings.userId, session.user.id)
+			});
+
+			if (!hasAccess(userSettings?.paid ?? false)) {
+				return redirect(303, '/checkout');
+			}
+		}
+	} else if (!isPublicRoute && !isWebhook) {
 		return redirect(303, '/signin');
 	}
 

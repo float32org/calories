@@ -55,10 +55,13 @@ CREATE TABLE "sessions" (
 CREATE TABLE "settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
+	"stripe_customer_id" text,
 	"calorie_goal" integer DEFAULT 2200 NOT NULL,
 	"weight_goal" real,
 	"weight_unit" text DEFAULT 'lbs' NOT NULL,
 	"onboarding_completed" boolean DEFAULT false NOT NULL,
+	"paid" boolean DEFAULT false NOT NULL,
+	"paid_at" timestamp,
 	"created_at" timestamp NOT NULL,
 	"updated_at" timestamp NOT NULL,
 	CONSTRAINT "settings_user_id_unique" UNIQUE("user_id")
