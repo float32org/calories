@@ -112,8 +112,9 @@ export const deleteUploadedImage = command(
 		try {
 			await deleteImage(input.imageKey);
 			return { success: true };
-		} catch {
-			return { success: true };
+		} catch (err) {
+			console.error('Failed to delete uploaded image:', err);
+			return error(500, 'Failed to delete image');
 		}
 	}
 );
@@ -154,12 +155,12 @@ export const analyzeMealText = command(
 
 export const addMeal = command(
 	z.object({
-		name: z.string().min(1),
-		servings: z.number().positive().default(1),
-		calories: z.number().int().positive(),
-		protein: z.number().int().optional(),
-		carbs: z.number().int().optional(),
-		fat: z.number().int().optional(),
+		name: z.string().min(1).max(200),
+		servings: z.number().positive().max(100).default(1),
+		calories: z.number().int().positive().max(50000),
+		protein: z.number().int().nonnegative().max(5000).optional(),
+		carbs: z.number().int().nonnegative().max(5000).optional(),
+		fat: z.number().int().nonnegative().max(5000).optional(),
 		imageKey: z.string().optional(),
 		mealDate: z.string(),
 		mealTime: z.string().optional()
@@ -185,34 +186,45 @@ export const addMeal = command(
 			await deleteImage(input.imageKey);
 		}
 
-		const [meal] = await db
-			.insert(mealLogs)
-			.values({
-				userId: locals.user.id,
-				name: input.name,
-				servings: input.servings,
-				calories: input.calories,
-				protein: input.protein,
-				carbs: input.carbs,
-				fat: input.fat,
-				image: permanentImageKey,
-				mealDate: input.mealDate,
-				mealTime
-			})
-			.returning();
+		try {
+			const [meal] = await db
+				.insert(mealLogs)
+				.values({
+					userId: locals.user.id,
+					name: input.name,
+					servings: input.servings,
+					calories: input.calories,
+					protein: input.protein,
+					carbs: input.carbs,
+					fat: input.fat,
+					image: permanentImageKey,
+					mealDate: input.mealDate,
+					mealTime
+				})
+				.returning();
 
-		return {
-			id: meal.id,
-			name: meal.name,
-			servings: meal.servings,
-			calories: meal.calories,
-			protein: meal.protein,
-			carbs: meal.carbs,
-			fat: meal.fat,
-			image: meal.image ? getPresignedUrl(meal.image) : null,
-			date: meal.mealDate,
-			timestamp: meal.mealTime.getTime()
-		};
+			return {
+				id: meal.id,
+				name: meal.name,
+				servings: meal.servings,
+				calories: meal.calories,
+				protein: meal.protein,
+				carbs: meal.carbs,
+				fat: meal.fat,
+				image: meal.image ? getPresignedUrl(meal.image) : null,
+				date: meal.mealDate,
+				timestamp: meal.mealTime.getTime()
+			};
+		} catch (err) {
+			if (permanentImageKey) {
+				try {
+					await s3Client.delete(permanentImageKey);
+				} catch {
+					console.error('Failed to clean up orphaned image:', permanentImageKey);
+				}
+			}
+			throw err;
+		}
 	}
 );
 
@@ -235,7 +247,7 @@ export const deleteMeal = command(z.string().uuid(), async (id) => {
 		await s3Client.delete(meal.image);
 	}
 
-	await db.delete(mealLogs).where(eq(mealLogs.id, id));
+	await db.delete(mealLogs).where(and(eq(mealLogs.id, id), eq(mealLogs.userId, locals.user.id)));
 
 	return { success: true };
 });
@@ -243,12 +255,12 @@ export const deleteMeal = command(z.string().uuid(), async (id) => {
 export const updateMeal = command(
 	z.object({
 		id: z.uuid(),
-		name: z.string().min(1),
-		servings: z.number().positive().default(1),
-		calories: z.number().int().positive(),
-		protein: z.number().int().optional(),
-		carbs: z.number().int().optional(),
-		fat: z.number().int().optional()
+		name: z.string().min(1).max(200),
+		servings: z.number().positive().max(100).default(1),
+		calories: z.number().int().positive().max(50000),
+		protein: z.number().int().nonnegative().max(5000).optional(),
+		carbs: z.number().int().nonnegative().max(5000).optional(),
+		fat: z.number().int().nonnegative().max(5000).optional()
 	}),
 	async (input) => {
 		const { locals } = getRequestEvent();

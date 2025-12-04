@@ -20,7 +20,24 @@ import {
 	streamText
 } from 'ai';
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
 import type { RequestHandler } from './$types';
+
+const contextSchema = z.object({
+	calorieGoal: z.number().int().min(0).max(50000),
+	caloriesConsumed: z.number().int().min(0).max(100000),
+	proteinConsumed: z.number().int().min(0).max(10000),
+	carbsConsumed: z.number().int().min(0).max(10000),
+	fatConsumed: z.number().int().min(0).max(10000),
+	waterGoal: z.number().int().min(0).max(100000),
+	waterConsumed: z.number().int().min(0).max(100000),
+	currentWeight: z.number().min(0).max(2000).nullable(),
+	weightGoal: z.number().min(0).max(2000).nullable(),
+	units: z.enum(['imperial', 'metric']),
+	sex: z.enum(['male', 'female']).nullable(),
+	activityLevel: z.string().max(50),
+	timezone: z.string().max(100).optional()
+});
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user || !locals.session) {
@@ -30,18 +47,24 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	try {
 		const body = await request.json();
-		const { messages, context } = body as {
-			context: Omit<AssistantContext, 'preferences'>;
+		const { messages, context: rawContext } = body as {
+			context: unknown;
 			messages: Message[];
 		};
 
-		if (!context) {
+		if (!rawContext) {
 			return json({ error: 'Context is required' }, { status: 400 });
 		}
 
 		if (!messages || !Array.isArray(messages) || messages.length === 0) {
 			return json({ error: 'Messages are required' }, { status: 400 });
 		}
+
+		const contextResult = contextSchema.safeParse(rawContext);
+		if (!contextResult.success) {
+			return json({ error: 'Invalid context data' }, { status: 400 });
+		}
+		const context = contextResult.data;
 
 		const [userPreferences, userPantry] = await Promise.all([
 			db.select().from(foodPreferences).where(eq(foodPreferences.userId, userId)),

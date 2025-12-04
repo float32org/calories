@@ -433,11 +433,11 @@ Warm, knowledgeable, and efficient. Like a nutritionist friend who remembers eve
 const suggestFood = tool({
 	description: 'Suggest a food item that the user can log to their diary',
 	inputSchema: z.object({
-		name: z.string().describe('The name of the food or meal'),
-		calories: z.number().describe('Estimated calories'),
-		protein: z.number().describe('Protein in grams'),
-		carbs: z.number().describe('Carbohydrates in grams'),
-		fat: z.number().describe('Fat in grams')
+		name: z.string().max(200).describe('The name of the food or meal'),
+		calories: z.number().int().nonnegative().max(50000).describe('Estimated calories'),
+		protein: z.number().int().nonnegative().max(5000).describe('Protein in grams'),
+		carbs: z.number().int().nonnegative().max(5000).describe('Carbohydrates in grams'),
+		fat: z.number().int().nonnegative().max(5000).describe('Fat in grams')
 	})
 });
 
@@ -532,8 +532,8 @@ const queryMealHistory = tool({
 			.optional()
 			.describe('Start date in YYYY-MM-DD format (for date_range query)'),
 		endDate: z.string().optional().describe('End date in YYYY-MM-DD format (for date_range query)'),
-		searchTerm: z.string().optional().describe('Food name to search for (for search query)'),
-		limit: z.number().optional().default(10).describe('Maximum number of results to return')
+		searchTerm: z.string().max(200).optional().describe('Food name to search for (for search query)'),
+		limit: z.number().int().min(1).max(100).optional().default(10).describe('Maximum number of results to return (1-100)')
 	}),
 	execute: async (input, { experimental_context: context }) => {
 		const ctx = getToolContext(context);
@@ -812,8 +812,9 @@ Examples: "Set my calorie goal to 1800", "I want to reach 150 lbs", "Lower my da
 		weightGoal: z
 			.number()
 			.positive()
+			.max(1500)
 			.optional()
-			.describe("New target weight (in user's preferred unit)")
+			.describe("New target weight (in user's preferred unit, max 1500)")
 	}),
 	execute: async (input, { experimental_context: context }) => {
 		const ctx = getToolContext(context);
@@ -871,7 +872,11 @@ const logWeight = tool({
 
 Always confirm the weight was logged successfully.`,
 	inputSchema: z.object({
-		weight: z.number().positive().describe('The weight value to log'),
+		weight: z
+			.number()
+			.positive()
+			.max(1500)
+			.describe('The weight value to log (max 1500 lbs or ~680 kg)'),
 		date: z
 			.string()
 			.optional()
@@ -984,12 +989,12 @@ const editMeal = tool({
 Use queryMealHistory first to find the meal ID if needed.`,
 	inputSchema: z.object({
 		mealId: z.string().describe('The ID of the meal to edit'),
-		name: z.string().optional().describe('New name for the meal'),
-		calories: z.number().optional().describe('Updated calories'),
-		protein: z.number().optional().describe('Updated protein in grams'),
-		carbs: z.number().optional().describe('Updated carbs in grams'),
-		fat: z.number().optional().describe('Updated fat in grams'),
-		servings: z.number().optional().describe('Updated number of servings')
+		name: z.string().max(200).optional().describe('New name for the meal'),
+		calories: z.number().int().positive().max(50000).optional().describe('Updated calories'),
+		protein: z.number().int().nonnegative().max(5000).optional().describe('Updated protein in grams'),
+		carbs: z.number().int().nonnegative().max(5000).optional().describe('Updated carbs in grams'),
+		fat: z.number().int().nonnegative().max(5000).optional().describe('Updated fat in grams'),
+		servings: z.number().positive().max(100).optional().describe('Updated number of servings')
 	}),
 	execute: async (input, { experimental_context: context }) => {
 		const ctx = getToolContext(context);
@@ -1129,13 +1134,13 @@ Operations:
 - delete: Remove an item from the pantry`,
 	inputSchema: z.object({
 		operation: z.enum(['add', 'update', 'delete']).describe('Operation to perform'),
-		name: z.string().describe('Name of the item'),
+		name: z.string().max(200).describe('Name of the item'),
 		category: z
 			.enum(pantryCategories)
 			.optional()
 			.describe('Category: protein, vegetable, fruit, dairy, grain, pantry, beverage, other'),
-		quantity: z.number().optional().describe('Quantity of the item'),
-		unit: z.string().optional().describe('Unit (lbs, oz, count, etc.)'),
+		quantity: z.number().nonnegative().max(10000).optional().describe('Quantity of the item'),
+		unit: z.string().max(50).optional().describe('Unit (lbs, oz, count, etc.)'),
 		itemId: z.string().optional().describe('Item ID (required for update/delete)')
 	}),
 	execute: async (input, { experimental_context: context }) => {
