@@ -293,8 +293,7 @@
 					throw streamErr;
 				}
 			}
-		} catch (err) {
-			console.error('Chat error:', err);
+		} catch {
 			toast.error('Something went wrong. Please try again.');
 		} finally {
 			isStreaming = false;

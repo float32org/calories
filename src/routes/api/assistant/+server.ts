@@ -1,4 +1,6 @@
 import type { Message } from '$lib/messages';
+import { db } from '$lib/server/db';
+import { gateway } from '$lib/server/gateway';
 import {
 	buildSystemPrompt,
 	type AssistantContext,
@@ -6,11 +8,8 @@ import {
 	type PantryItem
 } from '$lib/server/prompt';
 import { aiLimiter } from '$lib/server/ratelimit';
-import { type PantryCategory } from '$lib/server/schema';
+import { foodPreferences, pantryItems, type PantryCategory } from '$lib/server/schema';
 import { assistantTools } from '$lib/server/tools';
-import { db } from '$lib/server/db';
-import { gateway } from '$lib/server/gateway';
-import { foodPreferences, pantryItems } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
 import {
 	convertToModelMessages,
@@ -120,17 +119,12 @@ export const POST: RequestHandler = async (event) => {
 					});
 
 					result.consumeStream();
-
 					writer.merge(result.toUIMessageStream());
 				},
-				onError: (error) => {
-					console.error('Assistant stream error:', error);
-					return 'An unexpected error occurred. Please try again.';
-				}
+				onError: () => 'An unexpected error occurred. Please try again.'
 			})
 		});
-	} catch (error) {
-		console.error('Assistant API error:', error);
+	} catch {
 		return json({ error: 'Failed to process request' }, { status: 500 });
 	}
 };

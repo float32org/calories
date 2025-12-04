@@ -5,6 +5,7 @@ declare global {
 		interface Locals {
 			user: User | undefined;
 			session: Session | undefined;
+			requestId: string;
 		}
 	}
 }
