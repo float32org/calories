@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PREFERENCE_CATEGORY_LABELS_LOWER } from '$lib/constants';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
@@ -27,17 +28,6 @@
 		output?: PreferenceOutput;
 	} = $props();
 
-	const categoryLabels: Record<string, string> = {
-		like: 'likes',
-		dislike: 'dislikes',
-		allergy: 'allergy',
-		dietary: 'dietary',
-		cuisine: 'cuisine',
-		timing: 'timing',
-		portion: 'portion',
-		other: 'preference'
-	};
-
 	const config = $derived.by(() => {
 		if (input.operation === 'delete') {
 			return { icon: TrashIcon, label: 'Removed', color: 'text-amber-500' };
@@ -48,7 +38,9 @@
 		return { icon: CheckIcon, label: 'Saved', color: 'text-emerald-500' };
 	});
 
-	const categoryLabel = $derived(categoryLabels[input.category] || input.category);
+	const categoryLabel = $derived(
+		PREFERENCE_CATEGORY_LABELS_LOWER[input.category] || input.category
+	);
 </script>
 
 <div class="mt-2 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm">

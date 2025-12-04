@@ -3,6 +3,7 @@
 	import { InputGroup, InputGroupInput } from '$lib/components/ui/input-group';
 	import { Label } from '$lib/components/ui/label';
 	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
+	import { PANTRY_CATEGORY_LABELS, PANTRY_CATEGORY_ORDER } from '$lib/constants';
 	import {
 		addPantryItem,
 		addPantryItems,
@@ -78,28 +79,6 @@
 	let analyzing = $state(false);
 	let parsedItems = $state<ParsedReceiptItem[]>([]);
 	let storeName = $state<string | null>(null);
-
-	const categoryLabels: Record<string, string> = {
-		protein: 'Protein',
-		vegetable: 'Vegetables',
-		fruit: 'Fruits',
-		dairy: 'Dairy',
-		grain: 'Grains',
-		pantry: 'Pantry',
-		beverage: 'Beverages',
-		other: 'Other'
-	};
-
-	const categoryOrder = [
-		'protein',
-		'vegetable',
-		'fruit',
-		'dairy',
-		'grain',
-		'pantry',
-		'beverage',
-		'other'
-	];
 
 	const groupedItems = $derived.by(() => {
 		const groups: Record<string, PantryItem[]> = {};
@@ -329,13 +308,13 @@
 					</div>
 				{:else}
 					<div class="space-y-4 max-h-[400px] overflow-y-auto -mx-1 px-1">
-						{#each categoryOrder as category (category)}
+						{#each PANTRY_CATEGORY_ORDER as category (category)}
 							{#if groupedItems[category]?.length}
 								<div>
 									<h3
 										class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1"
 									>
-										{categoryLabels[category]}
+										{PANTRY_CATEGORY_LABELS[category]}
 									</h3>
 									<div class="rounded-lg border bg-card overflow-hidden divide-y">
 										{#each groupedItems[category] as item (item.id)}
@@ -400,14 +379,14 @@
 						<Select type="single" bind:value={newCategory}>
 							<SelectTrigger class="w-full">
 								{#if newCategory}
-									{categoryLabels[newCategory]}
+									{PANTRY_CATEGORY_LABELS[newCategory]}
 								{:else}
 									<span class="text-muted-foreground">Select...</span>
 								{/if}
 							</SelectTrigger>
 							<SelectContent>
-								{#each categoryOrder as cat (cat)}
-									<SelectItem value={cat}>{categoryLabels[cat]}</SelectItem>
+								{#each PANTRY_CATEGORY_ORDER as cat (cat)}
+									<SelectItem value={cat}>{PANTRY_CATEGORY_LABELS[cat]}</SelectItem>
 								{/each}
 							</SelectContent>
 						</Select>
@@ -497,7 +476,7 @@
 									{#if item.quantity && item.unit}
 										{item.quantity} {item.unit} ·
 									{/if}
-									{categoryLabels[item.category ?? 'other']}
+									{PANTRY_CATEGORY_LABELS[item.category ?? 'other']}
 								</div>
 							</div>
 						</button>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PANTRY_CATEGORY_LABELS, PANTRY_CATEGORY_ORDER } from '$lib/constants';
 	import RefrigeratorIcon from '@lucide/svelte/icons/refrigerator';
 
 	type PantryItem = {
@@ -17,30 +18,8 @@
 
 	let { output }: { output: QueryPantryOutput } = $props();
 
-	const categoryLabels: Record<string, string> = {
-		protein: 'Protein',
-		vegetable: 'Vegetables',
-		fruit: 'Fruits',
-		dairy: 'Dairy',
-		grain: 'Grains',
-		pantry: 'Pantry',
-		beverage: 'Beverages',
-		other: 'Other'
-	};
-
-	const categoryOrder = [
-		'protein',
-		'vegetable',
-		'fruit',
-		'dairy',
-		'grain',
-		'pantry',
-		'beverage',
-		'other'
-	];
-
 	const allItems = $derived(
-		categoryOrder.flatMap((cat) =>
+		PANTRY_CATEGORY_ORDER.flatMap((cat) =>
 			(output.byCategory[cat] || []).map((item) => ({
 				...item,
 				category: cat
@@ -70,7 +49,7 @@
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-sm font-medium">{item.name}</p>
 						<p class="text-[11px] text-muted-foreground">
-							{categoryLabels[item.category] || item.category}
+							{PANTRY_CATEGORY_LABELS[item.category] || item.category}
 						</p>
 					</div>
 					{#if item.quantity != null && item.unit}

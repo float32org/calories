@@ -1,3 +1,4 @@
+import { PANTRY_CATEGORY_LABELS, PREFERENCE_CATEGORY_LABELS } from '$lib/constants';
 import { type PantryCategory, type PreferenceCategory } from './schema';
 
 export interface FoodPreference {
@@ -33,28 +34,6 @@ export interface AssistantContext {
 	timezone?: string;
 }
 
-const PREFERENCE_LABELS: Record<string, string> = {
-	like: 'Likes',
-	dislike: 'Dislikes',
-	allergy: 'Allergies',
-	dietary: 'Dietary restrictions',
-	cuisine: 'Cuisine preferences',
-	timing: 'Meal timing',
-	portion: 'Portion preferences',
-	other: 'Other preferences'
-};
-
-const PANTRY_LABELS: Record<string, string> = {
-	protein: 'Proteins',
-	vegetable: 'Vegetables',
-	fruit: 'Fruits',
-	dairy: 'Dairy',
-	grain: 'Grains',
-	pantry: 'Pantry items',
-	beverage: 'Beverages',
-	other: 'Other'
-};
-
 function formatGrouped<T>(
 	items: T[],
 	getCategory: (item: T) => string,
@@ -80,7 +59,7 @@ function formatPreferences(preferences: FoodPreference[]): string {
 		preferences,
 		(p) => p.category,
 		(p) => (p.notes ? `${p.value} (${p.notes})` : p.value),
-		PREFERENCE_LABELS,
+		PREFERENCE_CATEGORY_LABELS,
 		'No preferences recorded yet.'
 	);
 }
@@ -90,7 +69,7 @@ function formatPantry(pantry: PantryItem[]): string {
 		pantry,
 		(p) => p.category || 'other',
 		(p) => (p.quantity && p.unit ? `${p.name} (${p.quantity} ${p.unit})` : p.name),
-		PANTRY_LABELS,
+		PANTRY_CATEGORY_LABELS,
 		'Pantry is empty.'
 	);
 }
