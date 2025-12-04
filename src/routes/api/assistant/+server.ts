@@ -16,6 +16,7 @@ import {
 	createUIMessageStream,
 	createUIMessageStreamResponse,
 	smoothStream,
+	stepCountIs,
 	streamText
 } from 'ai';
 import { eq } from 'drizzle-orm';
@@ -84,7 +85,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 						messages: convertToModelMessages(messages),
 						tools: assistantTools,
 						experimental_context: { userId },
-						experimental_transform: smoothStream({ chunking: 'word' })
+						experimental_transform: smoothStream({ chunking: 'word' }),
+						stopWhen: stepCountIs(10)
 					});
 
 					result.consumeStream();

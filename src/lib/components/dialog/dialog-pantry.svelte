@@ -9,11 +9,13 @@
 		analyzeReceipt,
 		deletePantryItem,
 		getPantryImageUploadUrl,
-		getPantryItems
+		getPantryItems,
+		updatePantryItem
 	} from '$lib/remote/pantry.remote';
 	import { type PantryCategory } from '$lib/server/assistant';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import ReceiptIcon from '@lucide/svelte/icons/receipt';
 	import RefrigeratorIcon from '@lucide/svelte/icons/refrigerator';
@@ -71,6 +73,7 @@
 		{ value: 'bottle', label: 'bottle' }
 	];
 	let saving = $state(false);
+	let editingItemId = $state<string | null>(null);
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let analyzing = $state(false);
 	let parsedItems = $state<ParsedReceiptItem[]>([]);
@@ -113,6 +116,7 @@
 		newCategory = '';
 		newQuantity = '1';
 		newUnit = 'count';
+		editingItemId = null;
 		parsedItems = [];
 		storeName = null;
 	}
@@ -122,21 +126,40 @@
 		resetAddForm();
 	}
 
-	async function handleAddItem() {
+	function startEditing(item: PantryItem) {
+		editingItemId = item.id;
+		newName = item.name;
+		newCategory = (item.category as PantryCategory) || '';
+		newQuantity = String(item.quantity ?? 1);
+		newUnit = item.unit || 'count';
+		view = 'add';
+	}
+
+	async function handleSaveItem() {
 		if (!newName.trim()) return;
 
 		saving = true;
 		try {
-			await addPantryItem({
-				name: newName.trim(),
-				category: newCategory || undefined,
-				quantity: parseFloat(newQuantity) || 1,
-				unit: newUnit
-			}).updates(getPantryItems());
+			if (editingItemId) {
+				await updatePantryItem({
+					id: editingItemId,
+					name: newName.trim(),
+					category: newCategory || undefined,
+					quantity: parseFloat(newQuantity) || 1,
+					unit: newUnit
+				}).updates(getPantryItems());
+			} else {
+				await addPantryItem({
+					name: newName.trim(),
+					category: newCategory || undefined,
+					quantity: parseFloat(newQuantity) || 1,
+					unit: newUnit
+				}).updates(getPantryItems());
+			}
 			goToList();
 		} catch (err) {
-			console.error('Failed to add item:', err);
-			toast.error('Failed to add item');
+			console.error('Failed to save item:', err);
+			toast.error(editingItemId ? 'Failed to update item' : 'Failed to add item');
 		} finally {
 			saving = false;
 		}
@@ -245,7 +268,13 @@
 
 <ResponsiveDialog
 	bind:open
-	title={view === 'list' ? 'My Pantry' : view === 'add' ? 'Add Items' : 'Review Items'}
+	title={view === 'list'
+		? 'My Pantry'
+		: view === 'add'
+			? editingItemId
+				? 'Edit Item'
+				: 'Add Item'
+			: 'Review Items'}
 	subtitle={view === 'list'
 		? `${items.length} items`
 		: view === 'receipt-review' && storeName
@@ -324,13 +353,24 @@
 														</span>
 													{/if}
 												</div>
-												<button
-													type="button"
-													class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-													onclick={() => handleDeleteItem(item.id)}
+												<div
+													class="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
 												>
-													<TrashIcon class="size-4" />
-												</button>
+													<button
+														type="button"
+														class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+														onclick={() => startEditing(item)}
+													>
+														<PencilIcon class="size-4" />
+													</button>
+													<button
+														type="button"
+														class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+														onclick={() => handleDeleteItem(item.id)}
+													>
+														<TrashIcon class="size-4" />
+													</button>
+												</div>
 											</div>
 										{/each}
 									</div>
@@ -399,13 +439,13 @@
 					</div>
 				</div>
 
-				<Button onclick={handleAddItem} disabled={!newName.trim() || saving} class="w-full">
+				<Button onclick={handleSaveItem} disabled={!newName.trim() || saving} class="w-full">
 					{#if saving}
 						<Loader2Icon class="size-4 mr-2 animate-spin" />
-						Adding...
+						{editingItemId ? 'Saving...' : 'Adding...'}
 					{:else}
 						<CheckIcon class="size-4 mr-2" />
-						Add Item
+						{editingItemId ? 'Save Changes' : 'Add Item'}
 					{/if}
 				</Button>
 			</div>
