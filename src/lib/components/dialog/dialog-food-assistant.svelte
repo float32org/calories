@@ -4,8 +4,10 @@
 		ToolDeleteMeal,
 		ToolEditMeal,
 		ToolLogWeight,
+		ToolManagePantry,
 		ToolManagePreference,
 		ToolQueryMeals,
+		ToolQueryPantry,
 		ToolSuggestFood,
 		ToolUpdateGoals,
 		ToolWeightProgress
@@ -27,10 +29,7 @@
 	import { getProfile } from '$lib/remote/profile.remote';
 	import { getWaterForDate } from '$lib/remote/water.remote';
 	import { getLatestWeight } from '$lib/remote/weight.remote';
-	import type { AssistantContext } from '$lib/server/assistant';
 	import type { MealInput } from '$lib/types';
-
-	type ClientAssistantContext = Omit<AssistantContext, 'preferences'>;
 	import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
 	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
 	import ImagePlusIcon from '@lucide/svelte/icons/image-plus';
@@ -43,6 +42,21 @@
 	import { tick } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import ResponsiveDialog from './dialog-responsive.svelte';
+
+	type ClientAssistantContext = {
+		calorieGoal: number;
+		caloriesConsumed: number;
+		proteinConsumed: number;
+		carbsConsumed: number;
+		fatConsumed: number;
+		waterGoal: number;
+		waterConsumed: number;
+		currentWeight: number | null;
+		weightGoal: number | null;
+		units: 'imperial' | 'metric';
+		sex: 'male' | 'female' | null;
+		activityLevel: string;
+	};
 
 	class StreamParser extends DefaultChatTransport<Message> {
 		public parseStream(stream: ReadableStream<Uint8Array>) {
@@ -321,7 +335,9 @@
 					p.type === 'tool-updateGoals' ||
 					p.type === 'tool-logWeight' ||
 					p.type === 'tool-deleteMeal' ||
-					p.type === 'tool-editMeal'
+					p.type === 'tool-editMeal' ||
+					p.type === 'tool-queryPantry' ||
+					p.type === 'tool-managePantryItem'
 			) ?? false
 		);
 	}
@@ -451,6 +467,13 @@
 													<ToolDeleteMeal output={part.output} />
 												{:else if part.type === 'tool-editMeal' && part.state === 'output-available'}
 													<ToolEditMeal output={part.output} />
+												{:else if part.type === 'tool-queryPantry' && part.state === 'output-available'}
+													<ToolQueryPantry output={part.output} />
+												{:else if part.type === 'tool-managePantryItem' && (part.state === 'input-available' || part.state === 'output-available')}
+													<ToolManagePantry
+														input={part.input}
+														output={part.state === 'output-available' ? part.output : undefined}
+													/>
 												{/if}
 											{/each}
 										{:else}

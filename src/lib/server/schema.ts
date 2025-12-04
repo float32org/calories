@@ -235,3 +235,27 @@ export const foodPreferences = pgTable(
 		index('food_preferences_category_idx').on(table.category)
 	]
 );
+
+export const pantryItems = pgTable(
+	'pantry_items',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		category: text('category'),
+		quantity: real('quantity').default(1).notNull(),
+		unit: text('unit').default('count').notNull(),
+		createdAt: timestamp('created_at')
+			.$defaultFn(() => new Date())
+			.notNull(),
+		updatedAt: timestamp('updated_at')
+			.$defaultFn(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		index('pantry_items_user_id_idx').on(table.userId),
+		index('pantry_items_category_idx').on(table.category)
+	]
+);

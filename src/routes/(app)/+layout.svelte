@@ -3,9 +3,9 @@
 	import type { LayoutData } from './$types';
 
 	import { page } from '$app/state';
-	import { FoodAssistantDialog, GoalsDialog } from '$lib/components/dialog';
+	import { FoodAssistantDialog, GoalsDialog, PantryDialog } from '$lib/components/dialog';
 	import { Header } from '$lib/components/header';
-	import { assistantOpen, goalsOpen } from '$lib/stores/ui.store';
+	import { assistantOpen, goalsOpen, pantryOpen } from '$lib/stores/ui.store';
 	import { formatDate } from '$lib/utils/format';
 
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
@@ -25,6 +25,7 @@
 			trialEnd={data.trialEnd}
 			onGoalsClick={() => goalsOpen.set(true)}
 			onAssistantClick={() => assistantOpen.set(true)}
+			onPantryClick={() => pantryOpen.set(true)}
 		/>
 	{/if}
 	<main class="min-h-0 flex-1">
@@ -34,3 +35,4 @@
 
 <GoalsDialog bind:open={$goalsOpen} />
 <FoodAssistantDialog bind:open={$assistantOpen} date={selectedDate} />
+<PantryDialog bind:open={$pantryOpen} />

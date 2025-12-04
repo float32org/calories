@@ -6,3 +6,5 @@ export { default as ToolUpdateGoals } from './tool-update-goals.svelte';
 export { default as ToolLogWeight } from './tool-log-weight.svelte';
 export { default as ToolDeleteMeal } from './tool-delete-meal.svelte';
 export { default as ToolEditMeal } from './tool-edit-meal.svelte';
+export { default as ToolQueryPantry } from './tool-query-pantry.svelte';
+export { default as ToolManagePantry } from './tool-manage-pantry.svelte';

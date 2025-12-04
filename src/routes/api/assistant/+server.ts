@@ -3,11 +3,13 @@ import {
 	assistantTools,
 	buildSystemPrompt,
 	type AssistantContext,
-	type FoodPreference
+	type FoodPreference,
+	type PantryCategory,
+	type PantryItem
 } from '$lib/server/assistant';
 import { db } from '$lib/server/db';
-import { openrouter } from '$lib/server/openrouter';
-import { foodPreferences } from '$lib/server/schema';
+import { gateway } from '$lib/server/gateway';
+import { foodPreferences, pantryItems } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
 import {
 	convertToModelMessages,
@@ -40,10 +42,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			return json({ error: 'Messages are required' }, { status: 400 });
 		}
 
-		const userPreferences = await db
-			.select()
-			.from(foodPreferences)
-			.where(eq(foodPreferences.userId, userId));
+		const [userPreferences, userPantry] = await Promise.all([
+			db.select().from(foodPreferences).where(eq(foodPreferences.userId, userId)),
+			db.select().from(pantryItems).where(eq(pantryItems.userId, userId))
+		]);
 
 		const preferences: FoodPreference[] = userPreferences.map((p) => ({
 			id: p.id,
@@ -52,9 +54,18 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			notes: p.notes
 		}));
 
+		const pantry: PantryItem[] = userPantry.map((p) => ({
+			id: p.id,
+			name: p.name,
+			category: p.category as PantryCategory | null,
+			quantity: p.quantity,
+			unit: p.unit
+		}));
+
 		const fullContext: AssistantContext = {
 			...context,
-			preferences
+			preferences,
+			pantry
 		};
 
 		const systemPrompt = buildSystemPrompt(fullContext);
@@ -63,9 +74,11 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			stream: createUIMessageStream<Message>({
 				execute: async ({ writer }) => {
 					const result = streamText({
-						model: openrouter.chat('x-ai/grok-4-fast'),
+						model: gateway('anthropic/claude-haiku-4.5'),
 						providerOptions: {
-							openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
+							anthropic: {
+								thinking: { type: 'enabled', budgetTokens: 12000 }
+							}
 						},
 						system: systemPrompt,
 						messages: convertToModelMessages(messages),

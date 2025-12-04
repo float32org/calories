@@ -2,7 +2,7 @@ import { tool } from 'ai';
 import { and, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from './db';
-import { foodPreferences, mealLogs, profiles, weightLogs } from './schema';
+import { foodPreferences, mealLogs, pantryItems, profiles, weightLogs } from './schema';
 
 export const preferenceCategories = [
 	'like',
@@ -24,6 +24,27 @@ export interface FoodPreference {
 	notes: string | null;
 }
 
+export const pantryCategories = [
+	'protein',
+	'vegetable',
+	'fruit',
+	'dairy',
+	'grain',
+	'pantry',
+	'beverage',
+	'other'
+] as const;
+
+export type PantryCategory = (typeof pantryCategories)[number];
+
+export interface PantryItem {
+	id: string;
+	name: string;
+	category: PantryCategory | null;
+	quantity: number | null;
+	unit: string | null;
+}
+
 export interface AssistantContext {
 	calorieGoal: number;
 	caloriesConsumed: number;
@@ -38,6 +59,7 @@ export interface AssistantContext {
 	sex: 'male' | 'female' | null;
 	activityLevel: string;
 	preferences: FoodPreference[];
+	pantry: PantryItem[];
 	timezone?: string;
 }
 
@@ -78,6 +100,40 @@ function formatPreferences(preferences: FoodPreference[]): string {
 		portion: 'Portion preferences',
 		other: 'Other preferences'
 	};
+
+	for (const [category, items] of Object.entries(grouped)) {
+		lines.push(`- ${categoryLabels[category] || category}: ${items.join(', ')}`);
+	}
+
+	return lines.join('\n');
+}
+
+function formatPantry(pantry: PantryItem[]): string {
+	if (pantry.length === 0) {
+		return 'Pantry is empty.';
+	}
+
+	const grouped: Record<string, string[]> = {};
+	for (const item of pantry) {
+		const cat = item.category || 'other';
+		if (!grouped[cat]) grouped[cat] = [];
+		const entry =
+			item.quantity && item.unit ? `${item.name} (${item.quantity} ${item.unit})` : item.name;
+		grouped[cat].push(entry);
+	}
+
+	const categoryLabels: Record<string, string> = {
+		protein: 'Proteins',
+		vegetable: 'Vegetables',
+		fruit: 'Fruits',
+		dairy: 'Dairy',
+		grain: 'Grains',
+		pantry: 'Pantry items',
+		beverage: 'Beverages',
+		other: 'Other'
+	};
+
+	const lines: string[] = [];
 
 	for (const [category, items] of Object.entries(grouped)) {
 		lines.push(`- ${categoryLabels[category] || category}: ${items.join(', ')}`);
@@ -159,6 +215,10 @@ WEIGHT:
 <user_preferences>
 ${formatPreferences(context.preferences)}
 </user_preferences>
+
+<user_pantry>
+${formatPantry(context.pantry)}
+</user_pantry>
 
 <memory_system>
 You have a persistent memory system for user preferences. On EVERY message, analyze the user's input for preference signals and update memory accordingly. This happens silently in the background - never ask permission.
@@ -292,6 +352,18 @@ editMeal: Modify an existing meal entry. Use when:
 - User wants to correct calories or macros
 - User wants to rename a meal
 Use queryMealHistory first to find the meal ID, then edit it.
+
+queryPantry: Query what's in the user's pantry/refrigerator. Use this to:
+- See what ingredients they have available
+- Filter by category (protein, vegetable, dairy, etc.)
+- Find ingredients for meal suggestions
+- Answer "What do I have to cook with?" or "Do I have any chicken?"
+
+managePantryItem: Add, update, or remove items from the user's pantry. Use when:
+- User mentions buying groceries
+- User says they used up an ingredient
+- User wants to add or remove pantry items
+Operations: add, update, delete
 </tool_usage>
 
 <examples>
@@ -339,6 +411,18 @@ User: "That chicken was actually 2 servings"
 
 User: "Remove my last meal"
 → Use queryMealHistory with recent query, then deleteMeal on the most recent entry
+
+User: "What can I make with what I have?"
+→ Use queryPantry to see available ingredients, then suggest meals using those ingredients with suggestFood
+
+User: "I just bought chicken and broccoli"
+→ Use managePantryItem to add both items to their pantry
+
+User: "I used up the eggs"
+→ Use managePantryItem with operation 'delete' to remove eggs from pantry
+
+User: "Do I have any protein in my fridge?"
+→ Use queryPantry with category filter for 'protein' to check available proteins
 </examples>
 
 <tone>
@@ -965,6 +1049,186 @@ Use queryMealHistory first to find the meal ID if needed.`,
 	}
 });
 
+const queryPantry = tool({
+	description: `Query the user's pantry/refrigerator to see what ingredients they have available. Use this to:
+- See all available ingredients
+- Filter by category (protein, vegetable, fruit, dairy, grain, pantry, beverage)
+- Find specific ingredients
+- Help suggest meals based on what they have`,
+	inputSchema: z.object({
+		category: z
+			.enum(pantryCategories)
+			.optional()
+			.describe(
+				'Filter by category (protein, vegetable, fruit, dairy, grain, pantry, beverage, other)'
+			),
+		search: z.string().optional().describe('Search for specific item by name')
+	}),
+	execute: async (input, { experimental_context: context }) => {
+		const ctx = getToolContext(context);
+		const { category, search } = input;
+
+		const query = db
+			.select({
+				id: pantryItems.id,
+				name: pantryItems.name,
+				category: pantryItems.category,
+				quantity: pantryItems.quantity,
+				unit: pantryItems.unit
+			})
+			.from(pantryItems)
+			.where(eq(pantryItems.userId, ctx.userId));
+
+		const items = await query.orderBy(desc(pantryItems.createdAt));
+
+		let filtered = items;
+
+		if (category) {
+			filtered = filtered.filter((item) => item.category === category);
+		}
+
+		if (search) {
+			const searchLower = search.toLowerCase();
+			filtered = filtered.filter((item) => item.name.toLowerCase().includes(searchLower));
+		}
+
+		const grouped: Record<string, typeof items> = {};
+		for (const item of filtered) {
+			const cat = item.category || 'other';
+			if (!grouped[cat]) grouped[cat] = [];
+			grouped[cat].push(item);
+		}
+
+		return {
+			success: true,
+			totalItems: filtered.length,
+			byCategory: Object.fromEntries(
+				Object.entries(grouped).map(([cat, items]) => [
+					cat,
+					items.map((i) => ({
+						id: i.id,
+						name: i.name,
+						quantity: i.quantity,
+						unit: i.unit
+					}))
+				])
+			)
+		};
+	}
+});
+
+const managePantryItem = tool({
+	description: `Add, update, or remove items from the user's pantry. Use this when:
+- User mentions buying groceries ("I just bought chicken")
+- User says they used something up ("I'm out of eggs")
+- User wants to add or remove pantry items
+
+Operations:
+- add: Add a new item to the pantry
+- update: Modify an existing item (quantity, expiration, etc.)
+- delete: Remove an item from the pantry`,
+	inputSchema: z.object({
+		operation: z.enum(['add', 'update', 'delete']).describe('Operation to perform'),
+		name: z.string().describe('Name of the item'),
+		category: z
+			.enum(pantryCategories)
+			.optional()
+			.describe('Category: protein, vegetable, fruit, dairy, grain, pantry, beverage, other'),
+		quantity: z.number().optional().describe('Quantity of the item'),
+		unit: z.string().optional().describe('Unit (lbs, oz, count, etc.)'),
+		itemId: z.string().optional().describe('Item ID (required for update/delete)')
+	}),
+	execute: async (input, { experimental_context: context }) => {
+		const ctx = getToolContext(context);
+		const { operation, name, category, quantity, unit, itemId } = input;
+
+		if (operation === 'delete') {
+			if (itemId) {
+				const [deleted] = await db
+					.delete(pantryItems)
+					.where(and(eq(pantryItems.id, itemId), eq(pantryItems.userId, ctx.userId)))
+					.returning();
+
+				if (!deleted) {
+					return { success: false, error: 'Item not found' };
+				}
+
+				return { success: true, deleted: { id: deleted.id, name: deleted.name } };
+			} else {
+				const [existing] = await db
+					.select()
+					.from(pantryItems)
+					.where(and(eq(pantryItems.userId, ctx.userId), like(pantryItems.name, `%${name}%`)))
+					.limit(1);
+
+				if (!existing) {
+					return { success: false, error: `Item "${name}" not found in pantry` };
+				}
+
+				await db.delete(pantryItems).where(eq(pantryItems.id, existing.id));
+
+				return { success: true, deleted: { id: existing.id, name: existing.name } };
+			}
+		}
+
+		if (operation === 'update') {
+			if (!itemId) {
+				return { success: false, error: 'Item ID required for update' };
+			}
+
+			const updateData: Record<string, unknown> = { updatedAt: new Date() };
+			if (name) updateData.name = name;
+			if (category) updateData.category = category;
+			if (quantity !== undefined) updateData.quantity = quantity;
+			if (unit !== undefined) updateData.unit = unit;
+
+			const [updated] = await db
+				.update(pantryItems)
+				.set(updateData)
+				.where(and(eq(pantryItems.id, itemId), eq(pantryItems.userId, ctx.userId)))
+				.returning();
+
+			if (!updated) {
+				return { success: false, error: 'Item not found' };
+			}
+
+			return {
+				success: true,
+				updated: {
+					id: updated.id,
+					name: updated.name,
+					category: updated.category,
+					quantity: updated.quantity,
+					unit: updated.unit
+				}
+			};
+		}
+
+		// Add operation
+		const [newItem] = await db
+			.insert(pantryItems)
+			.values({
+				userId: ctx.userId,
+				name,
+				category,
+				quantity,
+				unit
+			})
+			.returning();
+
+		return {
+			success: true,
+			added: {
+				id: newItem.id,
+				name: newItem.name,
+				category: newItem.category,
+				quantity: newItem.quantity,
+				unit: newItem.unit
+			}
+		};
+	}
+});
+
 export const assistantTools = {
 	suggestFood,
 	managePreference,
@@ -973,5 +1237,7 @@ export const assistantTools = {
 	updateGoals,
 	logWeight,
 	deleteMeal,
-	editMeal
+	editMeal,
+	queryPantry,
+	managePantryItem
 };

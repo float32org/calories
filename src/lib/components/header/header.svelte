@@ -2,8 +2,9 @@
 	import { resolve } from '$app/paths';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import HamburgerIcon from '@lucide/svelte/icons/hamburger';
 	import GoalIcon from '@lucide/svelte/icons/goal';
+	import HamburgerIcon from '@lucide/svelte/icons/hamburger';
+	import RefrigeratorIcon from '@lucide/svelte/icons/refrigerator';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import type { User } from 'better-auth';
 	import HeaderUserMenu from './header-user-menu.svelte';
@@ -12,12 +13,14 @@
 		user,
 		trialEnd,
 		onGoalsClick,
-		onAssistantClick
+		onAssistantClick,
+		onPantryClick
 	}: {
 		user?: User;
 		trialEnd?: Date | string | null;
 		onGoalsClick?: () => void;
 		onAssistantClick?: () => void;
+		onPantryClick?: () => void;
 	} = $props();
 
 	const trialDaysLeft = $derived.by(() => {
@@ -43,7 +46,8 @@
 			</a>
 			{#if trialDaysLeft}
 				<Badge variant="secondary" class="text-xs">
-					{trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left
+					{trialDaysLeft}
+					{trialDaysLeft === 1 ? 'day' : 'days'} left
 				</Badge>
 			{/if}
 		</div>
@@ -52,6 +56,11 @@
 				{#if onAssistantClick}
 					<Button variant="outline" size="icon" class="size-8" onclick={onAssistantClick}>
 						<SparklesIcon class="size-4 text-muted-foreground" />
+					</Button>
+				{/if}
+				{#if onPantryClick}
+					<Button variant="outline" size="icon" class="size-8" onclick={onPantryClick}>
+						<RefrigeratorIcon class="size-4 text-muted-foreground" />
 					</Button>
 				{/if}
 				{#if onGoalsClick}

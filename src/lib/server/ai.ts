@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openrouter } from './openrouter';
+import { gateway } from './gateway';
 
 const mealAnalysisSchema = z.object({
 	isFood: z
@@ -152,7 +152,7 @@ export async function analyzeMealFromImage(
 	mimeType: string
 ): Promise<MealAnalysis> {
 	const { object } = await generateObject({
-		model: openrouter.chat('x-ai/grok-4-fast'),
+		model: gateway('anthropic/claude-haiku-4.5'),
 		providerOptions: {
 			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
 		},
@@ -247,9 +247,9 @@ WHEN UNCERTAIN: Estimate on the higher end. Users typically underreport.
 
 export async function analyzeMealFromText(description: string): Promise<MealAnalysis> {
 	const { object } = await generateObject({
-		model: openrouter.chat('x-ai/grok-4-fast'),
+		model: gateway('anthropic/claude-haiku-4.5'),
 		providerOptions: {
-			openrouter: { provider: { sort: 'latency' }, reasoning: { effort: 'high' } }
+			anthropic: { thinking: { type: 'enabled', budgetTokens: 12000 } }
 		},
 		schema: mealAnalysisSchema,
 		messages: [
@@ -285,6 +285,118 @@ export async function analyzeMealFromText(description: string): Promise<MealAnal
 			protein: 0,
 			carbs: 0,
 			fat: 0
+		};
+	}
+
+	return object;
+}
+
+const receiptItemSchema = z.object({
+	name: z.string().describe('The name of the food item, cleaned up from abbreviations'),
+	category: z
+		.enum(['protein', 'vegetable', 'fruit', 'dairy', 'grain', 'pantry', 'beverage', 'other'])
+		.describe('Category of the food item'),
+	quantity: z.number().optional().describe('Quantity if specified on receipt'),
+	unit: z.string().optional().describe('Unit if specified (lbs, oz, ct, etc.)')
+});
+
+const receiptAnalysisSchema = z.object({
+	isReceipt: z.boolean().describe('Whether the image is a grocery receipt'),
+	rejectionReason: z.string().optional().describe('If not a receipt, explain why'),
+	storeName: z.string().optional().describe('Name of the store if visible'),
+	items: z.array(receiptItemSchema).describe('List of food items found on the receipt')
+});
+
+export type ReceiptAnalysis = z.infer<typeof receiptAnalysisSchema>;
+export type ReceiptItem = z.infer<typeof receiptItemSchema>;
+
+const RECEIPT_SYSTEM_PROMPT = `<role>
+You are an expert at reading and parsing grocery store receipts. You can interpret abbreviated item names and identify food products from their receipt descriptions.
+</role>
+
+<task>
+Analyze receipt images to extract grocery/food items. Convert cryptic receipt abbreviations into clear food names.
+</task>
+
+<parsing_rules>
+COMMON ABBREVIATIONS:
+- GV, KS, 365, O ORG = Store brand prefixes (Great Value, Kirkland, Whole Foods 365, O Organics)
+- ORG, OG = Organic
+- BNL, BNLS = Boneless
+- CHKN, CKN = Chicken
+- BF, GRD = Beef, Ground
+- LB = per pound (weight item)
+- CT, PK = count, pack
+- FF = Fresh Fruit/Frozen
+- VEG = Vegetable
+- MLK = Milk
+- YGT = Yogurt
+- CHZ = Cheese
+
+CATEGORIZATION:
+- protein: meat, poultry, fish, eggs, tofu
+- vegetable: fresh, frozen, or canned vegetables
+- fruit: fresh, frozen, or canned fruits
+- dairy: milk, cheese, yogurt, butter
+- grain: bread, pasta, rice, cereal
+- pantry: canned goods, condiments, oils, spices
+- beverage: drinks, juice, coffee, tea
+- other: non-food items or unclear
+
+EXTRACTION RULES:
+1. Skip non-food items (cleaning supplies, toiletries, bags, etc.)
+2. Parse weights/quantities when visible (e.g., "1.5 LB" → quantity: 1.5, unit: "lbs")
+3. Clean up names to be human-readable
+4. For items sold by count, extract count as quantity
+</parsing_rules>
+
+<examples>
+Receipt line: "GV ORG BNLS CHKN BRST 1.5LB"
+→ name: "Organic Boneless Chicken Breast", category: "protein", quantity: 1.5, unit: "lbs"
+
+Receipt line: "BANANA 2.3 LB"
+→ name: "Bananas", category: "fruit", quantity: 2.3, unit: "lbs"
+
+Receipt line: "CHEERIOS FAM SZ"
+→ name: "Cheerios Family Size", category: "grain"
+
+Receipt line: "PAPER TOWELS 6PK"
+→ (skip - not food)
+</examples>`;
+
+export async function analyzeReceiptFromImage(
+	base64Data: string,
+	mimeType: string
+): Promise<ReceiptAnalysis> {
+	const { object } = await generateObject({
+		model: gateway('anthropic/claude-haiku-4.5'),
+		providerOptions: {
+			anthropic: { thinking: { type: 'enabled', budgetTokens: 12000 } }
+		},
+		schema: receiptAnalysisSchema,
+		messages: [
+			{
+				role: 'system',
+				content: RECEIPT_SYSTEM_PROMPT
+			},
+			{
+				role: 'user',
+				content: [
+					{
+						type: 'text',
+						text: `Analyze this grocery receipt and extract all food items. Skip non-food items. Parse abbreviations into readable names and categorize each item.`
+					},
+					{ type: 'image', image: base64Data, mediaType: mimeType }
+				]
+			}
+		]
+	});
+
+	if (!object.isReceipt) {
+		return {
+			isReceipt: false,
+			rejectionReason: object.rejectionReason || 'This does not appear to be a grocery receipt.',
+			items: []
 		};
 	}
 
