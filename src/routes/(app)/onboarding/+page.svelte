@@ -183,8 +183,7 @@
 
 			await markOnboardingComplete();
 
-			// Redirect to checkout after onboarding
-			goto('/checkout');
+			goto('/');
 		} catch (err) {
 			console.error('Failed to complete onboarding:', err);
 			toast.error('Failed to save settings');
