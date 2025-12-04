@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { client } from '$lib/auth';
+	import { client, subscription } from '$lib/auth';
 	import { AccountDeleteDialog } from '$lib/components/dialog';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
+	import { getSubscription } from '$lib/remote/subscriptions.remote';
 	import { getSessions } from '$lib/remote/users.remote';
 	import { getDeviceInfo } from '$lib/utils/device';
 	import { formatTimeAgo } from '$lib/utils/format';
 	import AlertTriangleIcon from '@lucide/svelte/icons/alert-triangle';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+	import CreditCardIcon from '@lucide/svelte/icons/credit-card';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
 	import TrashIcon from '@lucide/svelte/icons/trash';
 	import UserIcon from '@lucide/svelte/icons/user';
@@ -19,9 +21,12 @@
 
 	let { data }: { data: PageData } = $props();
 
+	const subscriptionData = await getSubscription();
+
 	let sessions = await getSessions();
 	let deleteAccountOpen = $state(false);
 	let isRevokingSession = $state<string | null>(null);
+	let isLoadingPortal = $state(false);
 
 	const sortedSessions = $derived(
 		[...(sessions ?? [])].sort((a, b) => {
@@ -30,6 +35,24 @@
 			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 		})
 	);
+
+	async function openBillingPortal() {
+		isLoadingPortal = true;
+		try {
+			const result = await subscription.billingPortal({
+				returnUrl: window.location.href
+			});
+			if (result.data?.url) {
+				window.location.href = result.data.url;
+			} else if (result.error) {
+				toast.error(result.error.message || 'Unable to open billing portal');
+			}
+		} catch {
+			toast.error('Unable to open billing portal');
+		} finally {
+			isLoadingPortal = false;
+		}
+	}
 
 	async function revokeSession(sessionId: string, sessionToken: string) {
 		isRevokingSession = sessionId;
@@ -68,7 +91,6 @@
 
 		<div class="flex-1 overflow-y-auto px-6 pb-20 no-scrollbar">
 			<div class="flex flex-col gap-6 py-4">
-				<!-- Account Section -->
 				<div class="flex flex-col gap-3">
 					<h2
 						class="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider"
@@ -104,8 +126,60 @@
 						</div>
 					</div>
 				</div>
-
-				<!-- Security Sessions -->
+				{#if subscriptionData.required}
+					<div class="flex flex-col gap-3">
+						<h2
+							class="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider"
+						>
+							<CreditCardIcon class="size-4" />
+							Subscription
+						</h2>
+						<div class="flex flex-col gap-3 rounded-3xl bg-card/50 p-5 transition-all">
+							<div class="flex items-center justify-between">
+								<div>
+									<h3 class="font-bold">Calories Pro</h3>
+									<p class="text-sm text-muted-foreground">
+										{#if subscriptionData.subscriptionStatus === 'trialing'}
+											Trial ends {subscriptionData.trialEnd
+												? new Date(subscriptionData.trialEnd).toLocaleDateString()
+												: 'soon'}
+										{:else if subscriptionData.cancelAtPeriodEnd}
+											Cancels {subscriptionData.periodEnd
+												? new Date(subscriptionData.periodEnd).toLocaleDateString()
+												: 'at period end'}
+										{:else}
+											$3/month
+										{/if}
+									</p>
+								</div>
+								<Badge
+									variant={subscriptionData.subscriptionStatus === 'active'
+										? 'default'
+										: 'secondary'}
+								>
+									{subscriptionData.subscriptionStatus === 'trialing'
+										? 'Trial'
+										: subscriptionData.subscriptionStatus === 'active'
+											? 'Active'
+											: (subscriptionData.subscriptionStatus ?? 'Inactive')}
+								</Badge>
+							</div>
+							<Button
+								variant="outline"
+								class="w-full rounded-xl"
+								onclick={openBillingPortal}
+								disabled={isLoadingPortal}
+							>
+								{#if isLoadingPortal}
+									<div
+										class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"
+									></div>
+								{/if}
+								Manage Subscription
+							</Button>
+						</div>
+					</div>
+				{/if}
 				<div class="flex flex-col gap-3">
 					<h2
 						class="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider"
@@ -172,8 +246,6 @@
 						{/if}
 					</div>
 				</div>
-
-				<!-- Danger Zone -->
 				<div class="flex flex-col gap-3">
 					<h2
 						class="flex items-center gap-2 text-sm font-bold text-destructive uppercase tracking-wider"
@@ -183,11 +255,9 @@
 					</h2>
 					<div class="rounded-3xl bg-destructive/5 border border-destructive/10 p-5">
 						<h3 class="font-bold text-foreground mb-1">Delete Account</h3>
-						<p class="text-xs text-muted-foreground mb-2">
+						<p class="text-xs text-muted-foreground mb-4">
 							Permanently remove your account and all associated data. This action cannot be undone.
-						</p>
-						<p class="text-xs text-muted-foreground/70 mb-4">
-							Lifetime access is tied to your email — you won't lose it.
+							Your subscription will be canceled immediately.
 						</p>
 						<Button
 							variant="destructive"
@@ -202,6 +272,5 @@
 			</div>
 		</div>
 	</div>
-
 	<AccountDeleteDialog bind:open={deleteAccountOpen} />
 </div>

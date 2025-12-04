@@ -1,9 +1,34 @@
+import { isHostedMode } from '$lib/server/access';
+import { auth } from '$lib/server/auth';
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ parent }) => {
+export const load: LayoutServerLoad = async ({ parent, url, request }) => {
 	const { user, session } = await parent();
 	if (!session || !user) {
 		throw redirect(302, '/signin');
+	}
+
+	const skipSubscriptionCheck =
+		url.pathname.startsWith('/checkout') || url.pathname.startsWith('/onboarding');
+
+	if (skipSubscriptionCheck || !isHostedMode()) {
+		return;
+	}
+
+	if (!user.onboardingCompleted) {
+		throw redirect(302, '/onboarding');
+	}
+
+	const subscriptions = await auth.api.listActiveSubscriptions({
+		headers: request.headers
+	});
+
+	const hasActiveSubscription = subscriptions?.some(
+		(sub) => sub.status === 'active' || sub.status === 'trialing'
+	);
+
+	if (!hasActiveSubscription) {
+		throw redirect(302, '/checkout');
 	}
 };

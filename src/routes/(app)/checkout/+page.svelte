@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { subscription } from '$lib/auth';
 	import { Button } from '$lib/components/ui/button';
-	import { createCheckoutSession } from '$lib/remote/subscriptions.remote';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import HamburgerIcon from '@lucide/svelte/icons/hamburger';
 	import { toast } from 'svelte-sonner';
@@ -11,9 +11,16 @@
 	async function handleCheckout() {
 		isLoading = true;
 		try {
-			const result = await createCheckoutSession();
-			if (result.url) {
-				window.location.href = result.url;
+			const result = await subscription.upgrade({
+				plan: 'pro',
+				successUrl: `${window.location.origin}/checkout/success`,
+				cancelUrl: `${window.location.origin}/checkout`
+			});
+			if (result.data?.url) {
+				window.location.href = result.data.url;
+			} else if (result.error) {
+				toast.error(result.error.message || 'Unable to start checkout');
+				isLoading = false;
 			}
 		} catch {
 			toast.error('Unable to start checkout, please try again.');
@@ -27,13 +34,13 @@
 		'Personal AI nutrition assistant',
 		'Weight tracking & goals',
 		'Preference learning',
-		'Lifetime access'
+		'7-day free trial'
 	];
 </script>
 
 <svelte:head>
-	<title>Get Lifetime Access - Calories</title>
-	<meta name="description" content="Get lifetime access to Calories for just $50" />
+	<title>Start Free Trial - Calories</title>
+	<meta name="description" content="Start your 7-day free trial of Calories Pro" />
 </svelte:head>
 
 <div class="flex h-full flex-col bg-background">
@@ -50,19 +57,17 @@
 					<p class="text-sm text-muted-foreground">Track your nutrition simply</p>
 				</div>
 			</a>
-
 			<div
 				class="flex w-full flex-col gap-6 rounded-3xl border border-border/50 bg-card/50 p-6 shadow-sm sm:p-8"
 			>
 				<div class="mb-2 space-y-1 text-center">
-					<h2 class="text-lg font-bold">Lifetime Access</h2>
+					<h2 class="text-lg font-bold">Calories Pro</h2>
 					<div class="flex items-baseline justify-center gap-1">
-						<span class="text-4xl font-bold">$50</span>
-						<span class="text-muted-foreground">one-time</span>
+						<span class="text-4xl font-bold">$3</span>
+						<span class="text-muted-foreground">/month</span>
 					</div>
-					<p class="text-xs text-muted-foreground">No subscriptions. Pay once, use forever.</p>
+					<p class="text-xs text-muted-foreground">7-day free trial. Cancel anytime.</p>
 				</div>
-
 				<div class="space-y-3">
 					{#each features as feature (feature)}
 						<div class="flex items-center gap-3">
@@ -73,7 +78,6 @@
 						</div>
 					{/each}
 				</div>
-
 				<Button
 					class="h-12 w-full rounded-xl font-bold transition-all"
 					type="button"
@@ -85,14 +89,12 @@
 							class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
 						></div>
 					{/if}
-					Get Lifetime Access
+					Start Free Trial
 				</Button>
-
 				<p class="text-center text-[10px] text-muted-foreground/70">
-					Secure payment via Stripe. 30-day money-back guarantee.
+					Secure payment via Stripe. Cancel anytime before trial ends.
 				</p>
 			</div>
-
 			<p class="text-center text-xs text-muted-foreground/60">
 				Prefer to self-host?
 				<a

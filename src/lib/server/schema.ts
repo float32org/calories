@@ -4,12 +4,16 @@ export const users = pgTable(
 	'users',
 	{
 		id: uuid('id').primaryKey().defaultRandom(),
+		stripeCustomerId: text('stripe_customer_id'),
 		name: text('name').notNull(),
 		email: text('email').notNull().unique(),
 		emailVerified: boolean('email_verified')
 			.$defaultFn(() => false)
 			.notNull(),
 		image: text('image'),
+		onboardingCompleted: boolean('onboarding_completed')
+			.$defaultFn(() => false)
+			.notNull(),
 		createdAt: timestamp('created_at')
 			.$defaultFn(() => new Date())
 			.notNull(),
@@ -91,14 +95,17 @@ export const subscriptions = pgTable(
 	'subscriptions',
 	{
 		id: uuid('id').primaryKey().defaultRandom(),
-		userId: uuid('user_id')
-			.notNull()
-			.unique()
-			.references(() => users.id, { onDelete: 'cascade' }),
+		referenceId: text('reference_id').notNull(),
 		stripeCustomerId: text('stripe_customer_id'),
-		onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
-		paid: boolean('paid').default(false).notNull(),
-		paidAt: timestamp('paid_at'),
+		stripeSubscriptionId: text('stripe_subscription_id'),
+		plan: text('plan').notNull(),
+		status: text('status'),
+		periodStart: timestamp('period_start'),
+		periodEnd: timestamp('period_end'),
+		cancelAtPeriodEnd: boolean('cancel_at_period_end'),
+		seats: integer('seats'),
+		trialStart: timestamp('trial_start'),
+		trialEnd: timestamp('trial_end'),
 		createdAt: timestamp('created_at')
 			.$defaultFn(() => new Date())
 			.notNull(),
@@ -106,7 +113,7 @@ export const subscriptions = pgTable(
 			.$defaultFn(() => new Date())
 			.notNull()
 	},
-	(table) => [index('subscriptions_user_id_idx').on(table.userId)]
+	(table) => [index('subscriptions_reference_id_idx').on(table.referenceId)]
 );
 
 export const profiles = pgTable(

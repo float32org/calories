@@ -1,55 +1,48 @@
 import { command, getRequestEvent, query } from '$app/server';
-import { env } from '$env/dynamic/private';
-import { env as publicEnv } from '$env/dynamic/public';
 import { isHostedMode } from '$lib/server/access';
+import { auth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
-import { profiles, subscriptions } from '$lib/server/schema';
+import { users } from '$lib/server/schema';
 import { error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import Stripe from 'stripe';
 import { z } from 'zod';
 
 export const getSubscription = query(async () => {
-	const { locals } = getRequestEvent();
+	const event = getRequestEvent();
+	const { locals } = event;
 	if (!locals.session || !locals.user) {
 		return error(401, 'Unauthorized');
 	}
 
-	const [subscription] = await db
-		.select()
-		.from(subscriptions)
-		.where(eq(subscriptions.userId, locals.user.id));
+	let subscriptionStatus = null;
+	let trialEnd = null;
+	let periodEnd = null;
+	let cancelAtPeriodEnd = false;
 
-	if (!subscription) {
-		const [newSubscription] = await db
-			.insert(subscriptions)
-			.values({
-				userId: locals.user.id,
-				onboardingCompleted: false
-			})
-			.returning();
+	if (isHostedMode()) {
+		const subscriptions = await auth.api.listActiveSubscriptions({
+			headers: event.request.headers
+		});
 
-		const [existingProfile] = await db
-			.select()
-			.from(profiles)
-			.where(eq(profiles.userId, locals.user.id));
+		const activeSubscription = subscriptions?.find(
+			(sub) => sub.status === 'active' || sub.status === 'trialing'
+		);
 
-		if (!existingProfile) {
-			await db.insert(profiles).values({
-				userId: locals.user.id
-			});
+		if (activeSubscription) {
+			subscriptionStatus = activeSubscription.status;
+			trialEnd = activeSubscription.trialEnd;
+			periodEnd = activeSubscription.periodEnd;
+			cancelAtPeriodEnd = activeSubscription.cancelAtPeriodEnd ?? false;
 		}
-
-		return {
-			onboardingCompleted: newSubscription.onboardingCompleted,
-			paid: newSubscription.paid,
-			required: isHostedMode()
-		};
 	}
 
 	return {
-		onboardingCompleted: subscription.onboardingCompleted,
-		paid: subscription.paid,
+		onboardingCompleted: locals.user.onboardingCompleted,
+		hasActiveSubscription: subscriptionStatus === 'active' || subscriptionStatus === 'trialing',
+		subscriptionStatus,
+		trialEnd,
+		periodEnd,
+		cancelAtPeriodEnd,
 		required: isHostedMode()
 	};
 });
@@ -61,89 +54,15 @@ export const markOnboardingComplete = command(z.void(), async () => {
 		return error(401, 'Unauthorized');
 	}
 
-	const [updated] = await db
-		.update(subscriptions)
+	await db
+		.update(users)
 		.set({
 			onboardingCompleted: true,
 			updatedAt: new Date()
 		})
-		.where(eq(subscriptions.userId, locals.user.id))
-		.returning();
-
-	if (!updated) {
-		return error(404, 'Subscription not found');
-	}
+		.where(eq(users.id, locals.user.id));
 
 	return {
-		onboardingCompleted: updated.onboardingCompleted
+		onboardingCompleted: true
 	};
-});
-
-export const createCheckoutSession = command(z.void(), async () => {
-	const { locals } = getRequestEvent();
-
-	if (!locals.session || !locals.user) {
-		return error(401, 'Unauthorized');
-	}
-
-	if (!isHostedMode()) {
-		return error(400, 'Payments not enabled in self-hosted mode');
-	}
-
-	if (!env.STRIPE_SECRET_KEY || !env.STRIPE_PRICE_ID) {
-		return error(500, 'Stripe not configured');
-	}
-
-	const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-
-	const [subscription] = await db
-		.select()
-		.from(subscriptions)
-		.where(eq(subscriptions.userId, locals.user.id));
-
-	if (subscription?.paid) {
-		return error(400, 'Already paid');
-	}
-
-	let customerId = subscription?.stripeCustomerId;
-	if (!customerId) {
-		const customer = await stripe.customers.create({
-			email: locals.user.email,
-			name: locals.user.name,
-			metadata: {
-				userId: locals.user.id
-			}
-		});
-		customerId = customer.id;
-
-		if (subscription) {
-			await db
-				.update(subscriptions)
-				.set({ stripeCustomerId: customerId, updatedAt: new Date() })
-				.where(eq(subscriptions.userId, locals.user.id));
-		} else {
-			await db.insert(subscriptions).values({
-				userId: locals.user.id,
-				stripeCustomerId: customerId
-			});
-		}
-	}
-
-	const session = await stripe.checkout.sessions.create({
-		customer: customerId,
-		mode: 'payment',
-		line_items: [
-			{
-				price: env.STRIPE_PRICE_ID,
-				quantity: 1
-			}
-		],
-		success_url: `${publicEnv.PUBLIC_BASE_URL}/checkout/success`,
-		cancel_url: `${publicEnv.PUBLIC_BASE_URL}/checkout`,
-		metadata: {
-			userId: locals.user.id
-		}
-	});
-
-	return { url: session.url };
 });

@@ -5,6 +5,7 @@
       "name": "calories",
       "dependencies": {
         "@ai-sdk/svelte": "^4.0.0-beta.129",
+        "@better-auth/stripe": "^1.4.5",
         "@humanspeak/svelte-markdown": "^0.8.13",
         "@openrouter/ai-sdk-provider": "^1.3.0",
         "ai": "^6.0.0-beta.129",
@@ -61,6 +62,8 @@
     "@ai-sdk/svelte": ["@ai-sdk/svelte@4.0.0-beta.129", "", { "dependencies": { "@ai-sdk/provider-utils": "4.0.0-beta.40", "ai": "6.0.0-beta.129" }, "peerDependencies": { "svelte": "^5.31.0" } }, "sha512-UnLx2EO7qiLNLVasvK4jI82lSRABzmM2fUhV1o+I/0L8MjnVDito+bPhG/8KWxuW1frUw6rw/cxS2D5JysFciw=="],
 
     "@better-auth/core": ["@better-auth/core@1.4.4", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "zod": "^4.1.12" }, "peerDependencies": { "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.18", "better-call": "1.1.3", "jose": "^6.1.0", "kysely": "^0.28.5", "nanostores": "^1.0.1" } }, "sha512-mlhoHPhgIPZNX73kJp1YzID4uaFXH6xgcjcxm2bYwTClvpgsY/n8MtI65Uy/K4vVd6fUvgfQETAni7nUkGWF3w=="],
+
+    "@better-auth/stripe": ["@better-auth/stripe@1.4.5", "", { "dependencies": { "defu": "^6.1.4", "zod": "^4.1.12" }, "peerDependencies": { "@better-auth/core": "1.4.5", "better-auth": "1.4.5", "stripe": "^18 || ^19 || ^20" } }, "sha512-kYrKOY/EYjKNXAj/pB5FHREM1KpdGQTMP5xyAvHR3mwlTKRLHUnXce16TWAmo5DdXtHr9qjHeOOoq4ZPsMZ68A=="],
 
     "@better-auth/telemetry": ["@better-auth/telemetry@1.4.4", "", { "dependencies": { "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.18" }, "peerDependencies": { "@better-auth/core": "1.4.4" } }, "sha512-Eh18QPznmu0gL1vImas4PqEOEx57JJZEWfSSCHsGzcHcAEgX+QSh0fGhMERm4uInfBmDm2niTbu+/pUvVD+2kQ=="],
 

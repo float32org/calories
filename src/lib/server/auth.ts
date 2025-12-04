@@ -3,10 +3,13 @@ import { env as publicEnv } from '$env/dynamic/public';
 
 import { isHostedMode } from '$lib/server/access';
 import { db } from '$lib/server/db';
-import { subscriptions } from '$lib/server/schema';
+import { profiles } from '$lib/server/schema';
+import { stripe } from '@better-auth/stripe';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import Stripe from 'stripe';
+
+const stripeClient = new Stripe(privateEnv.STRIPE_SECRET_KEY || '');
 
 export const auth = betterAuth({
 	baseURL: publicEnv.PUBLIC_BASE_URL,
@@ -25,46 +28,45 @@ export const auth = betterAuth({
 		database: { generateId: false }
 	},
 	user: {
-		deleteUser: { enabled: true }
+		deleteUser: { enabled: true },
+		additionalFields: {
+			onboardingCompleted: {
+				type: 'boolean',
+				required: true,
+				defaultValue: false
+			}
+		}
 	},
 	databaseHooks: {
 		user: {
 			create: {
 				after: async (user) => {
-					if (!isHostedMode() || !privateEnv.STRIPE_SECRET_KEY) {
-						return;
-					}
-
-					const stripe = new Stripe(privateEnv.STRIPE_SECRET_KEY);
-
-					const customers = await stripe.customers.list({
-						email: user.email,
-						limit: 1
+					await db.insert(profiles).values({
+						userId: user.id
 					});
-
-					if (customers.data.length === 0) {
-						return;
-					}
-
-					const customer = customers.data[0];
-
-					const payments = await stripe.paymentIntents.list({
-						customer: customer.id,
-						limit: 10
-					});
-
-					const hasPaid = payments.data.some((p) => p.status === 'succeeded');
-
-					if (hasPaid) {
-						await db.insert(subscriptions).values({
-							userId: user.id,
-							paid: true,
-							paidAt: new Date(),
-							stripeCustomerId: customer.id
-						});
-					}
 				}
 			}
 		}
-	}
+	},
+	plugins: isHostedMode()
+		? [
+				stripe({
+					stripeClient,
+					stripeWebhookSecret: privateEnv.STRIPE_WEBHOOK_SECRET!,
+					createCustomerOnSignUp: true,
+					subscription: {
+						enabled: true,
+						plans: [
+							{
+								name: 'pro',
+								priceId: privateEnv.STRIPE_PRICE_ID!,
+								freeTrial: {
+									days: 7
+								}
+							}
+						]
+					}
+				})
+			]
+		: []
 });
