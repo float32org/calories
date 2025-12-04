@@ -57,7 +57,6 @@
 				protein: meal.protein,
 				carbs: meal.carbs,
 				fat: meal.fat,
-				imageKey: meal.imageKey,
 				mealDate: date,
 				mealTime
 			}).updates(getMeals());

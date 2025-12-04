@@ -182,9 +182,16 @@
 		chat.messages = [];
 	}
 
+	const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+
 	async function handleFileSelect(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
 		if (!file) return;
+
+		if (file.size > MAX_FILE_SIZE) {
+			toast.error('Image is too large. Please use an image under 15MB.');
+			return;
+		}
 
 		imagePreview = URL.createObjectURL(file);
 		try {

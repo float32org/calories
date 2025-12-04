@@ -5,7 +5,6 @@ export type MealInput = {
 	protein?: number;
 	carbs?: number;
 	fat?: number;
-	imageKey?: string;
 };
 
 export type MealWithId = MealInput & {

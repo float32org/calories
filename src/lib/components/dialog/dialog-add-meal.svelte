@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NutritionSummary from '$lib/components/nutrition-summary.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		InputGroup,
@@ -8,12 +9,8 @@
 	} from '$lib/components/ui/input-group';
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import {
-		analyzeMealImage,
-		analyzeMealText,
-		deleteUploadedImage,
-		getImageUploadUrl
-	} from '$lib/remote/meals.remote';
+	import { analyzeMealImage, analyzeMealText, getImageUploadUrl } from '$lib/remote/meals.remote';
+	import type { MealInput } from '$lib/types';
 	import AlignLeftIcon from '@lucide/svelte/icons/align-left';
 	import CameraIcon from '@lucide/svelte/icons/camera';
 	import CheckIcon from '@lucide/svelte/icons/check';
@@ -24,8 +21,6 @@
 	import TagIcon from '@lucide/svelte/icons/tag';
 	import XIcon from '@lucide/svelte/icons/x';
 	import { toast } from 'svelte-sonner';
-	import NutritionSummary from '$lib/components/nutrition-summary.svelte';
-	import type { MealInput } from '$lib/types';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
 	let {
@@ -40,7 +35,6 @@
 	let name = $state('');
 	let description = $state('');
 	let imagePreview = $state<string | null>(null);
-	let imageKey = $state<string | null>(null);
 	let analyzing = $state(false);
 	let analyzed = $state(false);
 	let fileInput = $state<HTMLInputElement | null>(null);
@@ -69,10 +63,7 @@
 	let carbs = $derived(Math.round(baseCarbs * servings));
 	let fat = $derived(Math.round(baseFat * servings));
 
-	function reset(deleteImage = false) {
-		if (deleteImage && imageKey) {
-			deleteUploadedImage({ imageKey }).catch(() => {});
-		}
+	function reset() {
 		name = '';
 		description = '';
 		amountEaten = '1';
@@ -81,7 +72,6 @@
 		baseCarbs = 0;
 		baseFat = 0;
 		imagePreview = null;
-		imageKey = null;
 		analyzing = false;
 		analyzed = false;
 		isNutritionLabel = false;
@@ -95,16 +85,24 @@
 
 	$effect(() => {
 		if (wasOpen && !open) {
-			reset(true);
+			reset();
 		}
 		wasOpen = open;
 	});
+
+	const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 
 	async function handleFileSelect(e: Event) {
 		const target = e.target as HTMLInputElement;
 		if (!target.files || !target.files[0]) return;
 
 		const file = target.files[0];
+
+		if (file.size > MAX_FILE_SIZE) {
+			toast.error('Image is too large. Please use an image under 15MB.');
+			return;
+		}
+
 		const mimeType = file.type || 'image/jpeg';
 
 		imagePreview = URL.createObjectURL(file);
@@ -112,7 +110,7 @@
 		analyzed = false;
 
 		try {
-			const { imageKey: key, uploadUrl } = await getImageUploadUrl({ mimeType });
+			const { imageKey, uploadUrl } = await getImageUploadUrl({ mimeType });
 
 			const uploadResponse = await fetch(uploadUrl, {
 				method: 'PUT',
@@ -124,16 +122,13 @@
 				throw new Error('Failed to upload image');
 			}
 
-			imageKey = key;
-
-			const result = await analyzeMealImage({ imageKey: key, mimeType });
+			const result = await analyzeMealImage({ imageKey, mimeType });
 
 			name = result.name;
 			baseCalories = result.calories;
 			baseProtein = result.protein;
 			baseCarbs = result.carbs;
 			baseFat = result.fat;
-			imageKey = result.imageKey;
 			analyzed = true;
 			isNutritionLabel = result.isNutritionLabel ?? false;
 			servingSize = result.servingSize ?? null;
@@ -149,7 +144,6 @@
 			const message = err instanceof Error ? err.message : 'Failed to analyze meal';
 			toast.error(message);
 			imagePreview = null;
-			imageKey = null;
 		} finally {
 			analyzing = false;
 		}
@@ -183,12 +177,8 @@
 		}
 	}
 
-	async function clearImage() {
-		if (imageKey) {
-			deleteUploadedImage({ imageKey }).catch(() => {});
-		}
+	function clearImage() {
 		imagePreview = null;
-		imageKey = null;
 		analyzed = false;
 		isNutritionLabel = false;
 		servingSize = null;
@@ -206,12 +196,11 @@
 			calories,
 			protein: protein || undefined,
 			carbs: carbs || undefined,
-			fat: fat || undefined,
-			imageKey: imageKey || undefined
+			fat: fat || undefined
 		});
 
 		open = false;
-		reset(false);
+		reset();
 	}
 
 	function setQuickAmount(multiplier: number) {

@@ -153,11 +153,19 @@
 		}
 	}
 
+	const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+
 	async function handleScan(e: Event) {
 		const target = e.target as HTMLInputElement;
 		if (!target.files || !target.files[0]) return;
 
 		const file = target.files[0];
+
+		if (file.size > MAX_FILE_SIZE) {
+			toast.error('Image is too large. Please use an image under 15MB.');
+			return;
+		}
+
 		const mimeType = file.type || 'image/jpeg';
 
 		analyzing = true;

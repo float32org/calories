@@ -10,7 +10,6 @@
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
-	import UtensilsIcon from '@lucide/svelte/icons/utensils';
 	import { slide } from 'svelte/transition';
 
 	type Meal = {
@@ -21,7 +20,6 @@
 		protein?: number | null;
 		carbs?: number | null;
 		fat?: number | null;
-		image?: string | null;
 		timestamp: number;
 	};
 
@@ -47,18 +45,7 @@
 			class="w-1 shrink-0 rounded-l-2xl"
 			style="background-color: var(--chart-{(index % 5) + 1})"
 		></div>
-		<div class="relative w-20 shrink-0">
-			{#if meal.image}
-				<img src={meal.image} alt={meal.name} class="absolute inset-0 h-full w-full object-cover" />
-			{:else}
-				<div
-					class="absolute inset-0 flex items-center justify-center bg-linear-to-br from-muted/80 to-muted/40"
-				>
-					<UtensilsIcon class="size-5 text-muted-foreground/30" />
-				</div>
-			{/if}
-		</div>
-		<div class="flex min-w-0 flex-1 flex-col justify-center p-2">
+		<div class="flex min-w-0 flex-1 flex-col justify-center p-2 pl-3">
 			<div class="flex items-start justify-between gap-2">
 				<div class="min-w-0 flex-1">
 					<h3 class="line-clamp-1 font-bold leading-snug text-foreground">

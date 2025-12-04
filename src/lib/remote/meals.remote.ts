@@ -1,5 +1,5 @@
 import { command, getRequestEvent, query } from '$app/server';
-import { EXT_TO_MIME, MIME_TO_EXT } from '$lib/constants/mime';
+import { MIME_TO_EXT } from '$lib/constants/mime';
 import { analyzeMealFromImage, analyzeMealFromText } from '$lib/server/ai';
 import { db } from '$lib/server/db';
 import { aiLimiter } from '$lib/server/ratelimit';
@@ -9,8 +9,7 @@ import {
 	getImageBuffer,
 	getPresignedUploadUrl,
 	getPresignedUrl,
-	imageExists,
-	s3Client
+	imageExists
 } from '$lib/server/storage';
 import { error } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
@@ -38,7 +37,6 @@ export interface MealResponse {
 	protein: number | null;
 	carbs: number | null;
 	fat: number | null;
-	image: string | null;
 	date: string;
 	timestamp: number;
 }
@@ -52,7 +50,6 @@ function mealToResponse(meal: MealLog): MealResponse {
 		protein: meal.protein,
 		carbs: meal.carbs,
 		fat: meal.fat,
-		image: meal.image ? getPresignedUrl(meal.image) : null,
 		date: meal.mealDate,
 		timestamp: meal.mealTime.getTime()
 	};
@@ -102,8 +99,9 @@ export const analyzeMealImage = command(
 			const base64Data = imageBuffer.toString('base64');
 
 			const analysis = await analyzeMealFromImage(base64Data, input.mimeType);
+			await deleteImage(input.imageKey);
+
 			if (!analysis.isFood) {
-				await deleteImage(input.imageKey);
 				return error(
 					400,
 					analysis.rejectionReason ||
@@ -117,7 +115,6 @@ export const analyzeMealImage = command(
 				protein: analysis.protein,
 				carbs: analysis.carbs,
 				fat: analysis.fat,
-				imageKey: input.imageKey,
 				isNutritionLabel: analysis.isNutritionLabel,
 				servingSize: analysis.servingSize,
 				servingQuantity: analysis.servingQuantity,
@@ -194,7 +191,6 @@ export const analyzeMealText = command(
 
 export const addMeal = command(
 	mealFieldsSchema.extend({
-		imageKey: z.string().optional(),
 		mealDate: z.string(),
 		mealTime: z.string().optional()
 	}),
@@ -206,47 +202,22 @@ export const addMeal = command(
 
 		const mealTime = input.mealTime ? new Date(input.mealTime) : new Date();
 
-		let permanentImageKey: string | undefined;
+		const [meal] = await db
+			.insert(mealLogs)
+			.values({
+				userId: locals.user.id,
+				name: input.name,
+				servings: input.servings,
+				calories: input.calories,
+				protein: input.protein,
+				carbs: input.carbs,
+				fat: input.fat,
+				mealDate: input.mealDate,
+				mealTime
+			})
+			.returning();
 
-		if (input.imageKey?.startsWith(`temp/${locals.user.id}/`)) {
-			const ext = input.imageKey.split('.').pop() || 'jpg';
-			const mimeType = EXT_TO_MIME[ext] || 'image/jpeg';
-			const timestamp = Date.now();
-			permanentImageKey = `meals/${locals.user.id}/${timestamp}.${ext}`;
-
-			const imageBuffer = await getImageBuffer(input.imageKey);
-			await s3Client.write(permanentImageKey, imageBuffer, { type: mimeType });
-			await deleteImage(input.imageKey);
-		}
-
-		try {
-			const [meal] = await db
-				.insert(mealLogs)
-				.values({
-					userId: locals.user.id,
-					name: input.name,
-					servings: input.servings,
-					calories: input.calories,
-					protein: input.protein,
-					carbs: input.carbs,
-					fat: input.fat,
-					image: permanentImageKey,
-					mealDate: input.mealDate,
-					mealTime
-				})
-				.returning();
-
-			return mealToResponse(meal);
-		} catch (err) {
-			if (permanentImageKey) {
-				try {
-					await s3Client.delete(permanentImageKey);
-				} catch {
-					console.error('Failed to clean up orphaned image:', permanentImageKey);
-				}
-			}
-			throw err;
-		}
+		return mealToResponse(meal);
 	}
 );
 
@@ -256,20 +227,14 @@ export const deleteMeal = command(z.string().uuid(), async (id) => {
 		return error(401, 'Unauthorized');
 	}
 
-	const [meal] = await db
-		.select()
-		.from(mealLogs)
-		.where(and(eq(mealLogs.id, id), eq(mealLogs.userId, locals.user.id)));
+	const [deleted] = await db
+		.delete(mealLogs)
+		.where(and(eq(mealLogs.id, id), eq(mealLogs.userId, locals.user.id)))
+		.returning();
 
-	if (!meal) {
+	if (!deleted) {
 		return error(404, 'Meal not found');
 	}
-
-	if (meal.image) {
-		await s3Client.delete(meal.image);
-	}
-
-	await db.delete(mealLogs).where(and(eq(mealLogs.id, id), eq(mealLogs.userId, locals.user.id)));
 
 	return { success: true };
 });
