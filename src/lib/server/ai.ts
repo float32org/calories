@@ -300,25 +300,39 @@ const receiptItemSchema = z.object({
 	unit: z.string().optional().describe('Unit if specified (lbs, oz, ct, etc.)')
 });
 
-const receiptAnalysisSchema = z.object({
-	isReceipt: z.boolean().describe('Whether the image is a grocery receipt'),
-	rejectionReason: z.string().optional().describe('If not a receipt, explain why'),
-	storeName: z.string().optional().describe('Name of the store if visible'),
-	items: z.array(receiptItemSchema).describe('List of food items found on the receipt')
+const pantryImageAnalysisSchema = z.object({
+	imageType: z
+		.enum(['receipt', 'food', 'invalid'])
+		.describe('Type of image: receipt, food items, or invalid/unrecognized'),
+	rejectionReason: z
+		.string()
+		.optional()
+		.describe('If invalid, explain why (e.g., "This is a selfie", "This is a screenshot")'),
+	storeName: z.string().optional().describe('Name of the store if visible on a receipt'),
+	items: z.array(receiptItemSchema).describe('List of food items found')
 });
 
-export type ReceiptAnalysis = z.infer<typeof receiptAnalysisSchema>;
+export type PantryImageAnalysis = z.infer<typeof pantryImageAnalysisSchema>;
 export type ReceiptItem = z.infer<typeof receiptItemSchema>;
 
-const RECEIPT_SYSTEM_PROMPT = `<role>
-You are an expert at reading and parsing grocery store receipts. You can interpret abbreviated item names and identify food products from their receipt descriptions.
+const PANTRY_SCAN_SYSTEM_PROMPT = `<role>
+You are an expert at identifying food items from images. You can read grocery receipts, identify food on counters, in fridges, or being held.
 </role>
 
 <task>
-Analyze receipt images to extract grocery/food items. Convert cryptic receipt abbreviations into clear food names.
+Analyze images to identify food items for a pantry inventory. Handle two types of images:
+1. RECEIPTS - Parse item names from grocery receipts
+2. FOOD PHOTOS - Identify visible food items (on counter, in fridge, in hand, etc.)
 </task>
 
-<parsing_rules>
+<image_classification>
+FIRST, determine the image type:
+- RECEIPT: A grocery store receipt with itemized purchases
+- FOOD: Actual food items visible (groceries on counter, items in fridge, food in hand, packaged products)
+- INVALID: Not food-related (selfies, landscapes, screenshots, pets, random objects)
+</image_classification>
+
+<receipt_parsing_rules>
 COMMON ABBREVIATIONS:
 - GV, KS, 365, O ORG = Store brand prefixes (Great Value, Kirkland, Whole Foods 365, O Organics)
 - ORG, OG = Organic
@@ -333,7 +347,29 @@ COMMON ABBREVIATIONS:
 - YGT = Yogurt
 - CHZ = Cheese
 
-CATEGORIZATION:
+EXTRACTION RULES:
+1. Skip non-food items (cleaning supplies, toiletries, bags, etc.)
+2. Parse weights/quantities when visible (e.g., "1.5 LB" → quantity: 1.5, unit: "lbs")
+3. Clean up names to be human-readable
+4. For items sold by count, extract count as quantity
+</receipt_parsing_rules>
+
+<food_photo_rules>
+When identifying food from photos:
+1. List each distinct food item visible
+2. Count quantities when possible (e.g., 3 apples, 2 avocados)
+3. Identify packaging/brands if visible
+4. For bulk items, estimate quantity with appropriate unit (lbs, oz, count)
+5. Be specific: "Red Bell Pepper" not just "Pepper", "Fuji Apples" if identifiable
+
+QUANTITY ESTIMATION:
+- Count individual items when visible (3 bananas, 2 onions)
+- For bagged items, use "bag" as unit
+- For packaged items, use "pack" or the visible count
+- Default to quantity: 1, unit: "count" if unclear
+</food_photo_rules>
+
+<categorization>
 - protein: meat, poultry, fish, eggs, tofu
 - vegetable: fresh, frozen, or canned vegetables
 - fruit: fresh, frozen, or canned fruits
@@ -341,50 +377,30 @@ CATEGORIZATION:
 - grain: bread, pasta, rice, cereal
 - pantry: canned goods, condiments, oils, spices
 - beverage: drinks, juice, coffee, tea
-- other: non-food items or unclear
+- other: unclear items
+</categorization>`;
 
-EXTRACTION RULES:
-1. Skip non-food items (cleaning supplies, toiletries, bags, etc.)
-2. Parse weights/quantities when visible (e.g., "1.5 LB" → quantity: 1.5, unit: "lbs")
-3. Clean up names to be human-readable
-4. For items sold by count, extract count as quantity
-</parsing_rules>
-
-<examples>
-Receipt line: "GV ORG BNLS CHKN BRST 1.5LB"
-→ name: "Organic Boneless Chicken Breast", category: "protein", quantity: 1.5, unit: "lbs"
-
-Receipt line: "BANANA 2.3 LB"
-→ name: "Bananas", category: "fruit", quantity: 2.3, unit: "lbs"
-
-Receipt line: "CHEERIOS FAM SZ"
-→ name: "Cheerios Family Size", category: "grain"
-
-Receipt line: "PAPER TOWELS 6PK"
-→ (skip - not food)
-</examples>`;
-
-export async function analyzeReceiptFromImage(
+export async function analyzePantryImage(
 	base64Data: string,
 	mimeType: string
-): Promise<ReceiptAnalysis> {
+): Promise<PantryImageAnalysis> {
 	const { object } = await generateObject({
 		model: gateway('anthropic/claude-haiku-4.5'),
 		providerOptions: {
 			anthropic: { thinking: { type: 'enabled', budgetTokens: 12000 } }
 		},
-		schema: receiptAnalysisSchema,
+		schema: pantryImageAnalysisSchema,
 		messages: [
 			{
 				role: 'system',
-				content: RECEIPT_SYSTEM_PROMPT
+				content: PANTRY_SCAN_SYSTEM_PROMPT
 			},
 			{
 				role: 'user',
 				content: [
 					{
 						type: 'text',
-						text: `Analyze this grocery receipt and extract all food items. Skip non-food items. Parse abbreviations into readable names and categorize each item.`
+						text: `Analyze this image and identify all food items. First determine if this is a receipt or a photo of food, then extract/identify the items accordingly.`
 					},
 					{ type: 'image', image: base64Data, mediaType: mimeType }
 				]
@@ -392,10 +408,10 @@ export async function analyzeReceiptFromImage(
 		]
 	});
 
-	if (!object.isReceipt) {
+	if (object.imageType === 'invalid') {
 		return {
-			isReceipt: false,
-			rejectionReason: object.rejectionReason || 'This does not appear to be a grocery receipt.',
+			imageType: 'invalid',
+			rejectionReason: object.rejectionReason || 'Could not identify food items in this image.',
 			items: []
 		};
 	}

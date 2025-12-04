@@ -6,18 +6,18 @@
 	import {
 		addPantryItem,
 		addPantryItems,
-		analyzeReceipt,
 		deletePantryItem,
 		getPantryImageUploadUrl,
 		getPantryItems,
+		scanPantryImage,
 		updatePantryItem
 	} from '$lib/remote/pantry.remote';
 	import { type PantryCategory } from '$lib/server/assistant';
+	import CameraIcon from '@lucide/svelte/icons/camera';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import PlusIcon from '@lucide/svelte/icons/plus';
-	import ReceiptIcon from '@lucide/svelte/icons/receipt';
 	import RefrigeratorIcon from '@lucide/svelte/icons/refrigerator';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
 	import { toast } from 'svelte-sonner';
@@ -174,7 +174,7 @@
 		}
 	}
 
-	async function handleReceiptUpload(e: Event) {
+	async function handleScan(e: Event) {
 		const target = e.target as HTMLInputElement;
 		if (!target.files || !target.files[0]) return;
 
@@ -196,23 +196,23 @@
 				throw new Error('Failed to upload image');
 			}
 
-			const result = await analyzeReceipt({ imageKey, mimeType });
+			const result = await scanPantryImage({ imageKey, mimeType });
 
-			storeName = result.storeName ?? null;
+			storeName = result.imageType === 'receipt' ? (result.storeName ?? null) : null;
 			parsedItems = result.items.map((item) => ({
 				...item,
 				selected: true
 			}));
 
 			if (parsedItems.length === 0) {
-				toast.error('No food items found on receipt');
+				toast.error('No food items found');
 				return;
 			}
 
 			view = 'receipt-review';
 		} catch (err: unknown) {
-			console.error('Receipt analysis failed:', err);
-			const message = err instanceof Error ? err.message : 'Failed to analyze receipt';
+			console.error('Scan failed:', err);
+			const message = err instanceof Error ? err.message : 'Failed to analyze image';
 			toast.error(message);
 		} finally {
 			analyzing = false;
@@ -305,8 +305,8 @@
 							<Loader2Icon class="size-4 mr-2 animate-spin" />
 							Scanning...
 						{:else}
-							<ReceiptIcon class="size-4 mr-2" />
-							Scan Receipt
+							<CameraIcon class="size-4 mr-2" />
+							Scan
 						{/if}
 					</Button>
 					<input
@@ -314,7 +314,7 @@
 						accept="image/jpeg,image/png,image/webp,image/heic"
 						capture="environment"
 						bind:this={fileInput}
-						onchange={handleReceiptUpload}
+						onchange={handleScan}
 						class="hidden"
 					/>
 				</div>

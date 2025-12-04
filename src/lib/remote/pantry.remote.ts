@@ -1,5 +1,5 @@
 import { command, getRequestEvent, query } from '$app/server';
-import { analyzeReceiptFromImage } from '$lib/server/ai';
+import { analyzePantryImage } from '$lib/server/ai';
 import { db } from '$lib/server/db';
 import { pantryItems } from '$lib/server/schema';
 import {
@@ -46,7 +46,7 @@ export const getPantryImageUploadUrl = command(
 	}
 );
 
-export const analyzeReceipt = command(
+export const scanPantryImage = command(
 	z.object({
 		imageKey: z.string(),
 		mimeType: z.string().default('image/jpeg')
@@ -70,24 +70,25 @@ export const analyzeReceipt = command(
 			const imageBuffer = await getImageBuffer(input.imageKey);
 			const base64Data = imageBuffer.toString('base64');
 
-			const analysis = await analyzeReceiptFromImage(base64Data, input.mimeType);
+			const analysis = await analyzePantryImage(base64Data, input.mimeType);
 
 			await deleteImage(input.imageKey);
 
-			if (!analysis.isReceipt) {
+			if (analysis.imageType === 'invalid') {
 				return error(
 					400,
-					analysis.rejectionReason || 'This does not appear to be a grocery receipt.'
+					analysis.rejectionReason || 'Could not identify food items in this image.'
 				);
 			}
 
 			return {
+				imageType: analysis.imageType,
 				storeName: analysis.storeName,
 				items: analysis.items
 			};
 		} catch (err) {
-			console.error('Receipt analysis failed:', err);
-			return error(500, 'Failed to analyze receipt. Please try again.');
+			console.error('Pantry image analysis failed:', err);
+			return error(500, 'Failed to analyze image. Please try again.');
 		}
 	}
 );
