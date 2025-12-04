@@ -28,6 +28,7 @@ bun run db:migrate       # Run migrations against database
 ## Architecture
 
 ### Tech Stack
+
 - **Runtime**: Bun
 - **Framework**: SvelteKit with Node adapter
 - **Database**: PostgreSQL via Drizzle ORM
@@ -82,6 +83,7 @@ const result = await addMeal({ name: 'Pizza', calories: 500, ... });
 ### Database Schema
 
 Core tables in `src/lib/server/schema.ts`:
+
 - `users`, `sessions`, `accounts`, `verifications` - Auth tables (better-auth managed)
 - `profiles` - User settings (goals, units, activity level)
 - `subscriptions` - Stripe subscriptions
@@ -94,6 +96,7 @@ Core tables in `src/lib/server/schema.ts`:
 ### AI Assistant
 
 The food assistant (`/api/assistant`) uses streaming with these tools defined in `src/lib/server/tools.ts`:
+
 - `suggestFood` - Suggest meals to log
 - `managePreference` - Track dietary preferences
 - `queryMealHistory` / `queryWeightHistory` - Lookup user data

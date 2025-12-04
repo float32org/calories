@@ -8,22 +8,17 @@
 	} from '$lib/components/ui/input-group';
 	import { Label } from '$lib/components/ui/label';
 	import { getProfile, updateProfile } from '$lib/remote/profile.remote';
-	import { getLatestWeight } from '$lib/remote/weight.remote';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
-	import ScaleIcon from '@lucide/svelte/icons/scale';
 	import { toast } from 'svelte-sonner';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
 	const initialProfile = await getProfile();
-	const initialLatestWeight = await getLatestWeight();
 
 	const profile = $derived(getProfile().current ?? initialProfile);
-	const latestWeight = $derived(getLatestWeight().current ?? initialLatestWeight);
 
 	const units = $derived(profile?.units ?? 'imperial');
-	const currentWeight = $derived(latestWeight?.weight ?? null);
 
 	let calorieGoal = $state('');
 	let waterGoal = $state('');
@@ -64,23 +59,11 @@
 
 <ResponsiveDialog
 	bind:open
-	title="Goals & Settings"
-	subtitle="Set your daily targets"
+	title="Goals"
+	subtitle="Set your nutrition targets"
 	contentClass="sm:max-w-md"
 >
 	<div class="space-y-6 py-4">
-		{#if currentWeight}
-			<div class="flex items-center gap-3 rounded-lg border border-muted bg-muted/30 p-3">
-				<div class="rounded-md bg-background p-2 shadow-sm">
-					<ScaleIcon class="size-4 text-muted-foreground" />
-				</div>
-				<div>
-					<p class="text-xs font-medium text-muted-foreground">Current Weight</p>
-					<p class="text-sm font-bold">{currentWeight} {weightUnit}</p>
-				</div>
-			</div>
-		{/if}
-
 		<div class="space-y-2">
 			<Label for="weightGoal">Goal Weight</Label>
 			<InputGroup>

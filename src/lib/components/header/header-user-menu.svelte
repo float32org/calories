@@ -9,6 +9,8 @@
 		DropdownMenuItem,
 		DropdownMenuTrigger
 	} from '$lib/components/ui/dropdown-menu';
+	import { goalsOpen } from '$lib/stores/ui.store';
+	import GoalIcon from '@lucide/svelte/icons/goal';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import UserIcon from '@lucide/svelte/icons/user';
@@ -38,6 +40,10 @@
 		{/snippet}
 	</DropdownMenuTrigger>
 	<DropdownMenuContent align="end" preventScroll={false}>
+		<DropdownMenuItem onclick={() => goalsOpen.set(true)}>
+			<GoalIcon class="size-4" />
+			<span>Goals</span>
+		</DropdownMenuItem>
 		<DropdownMenuItem onclick={() => goto(resolve('/account'))}>
 			<UserIcon class="size-4" />
 			<span>Account</span>

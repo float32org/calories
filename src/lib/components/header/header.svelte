@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import GoalIcon from '@lucide/svelte/icons/goal';
+	import ChartLineIcon from '@lucide/svelte/icons/chart-line';
 	import HamburgerIcon from '@lucide/svelte/icons/hamburger';
 	import RefrigeratorIcon from '@lucide/svelte/icons/refrigerator';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
@@ -12,13 +12,11 @@
 	let {
 		user,
 		trialEnd,
-		onGoalsClick,
 		onAssistantClick,
 		onPantryClick
 	}: {
 		user?: User;
 		trialEnd?: Date | string | null;
-		onGoalsClick?: () => void;
 		onAssistantClick?: () => void;
 		onPantryClick?: () => void;
 	} = $props();
@@ -63,11 +61,9 @@
 						<RefrigeratorIcon class="size-4 text-muted-foreground" />
 					</Button>
 				{/if}
-				{#if onGoalsClick}
-					<Button variant="outline" size="icon" class="size-8" onclick={onGoalsClick}>
-						<GoalIcon class="size-4 text-muted-foreground" />
-					</Button>
-				{/if}
+				<Button variant="outline" size="icon" class="size-8" href={resolve('/progress')}>
+					<ChartLineIcon class="size-4 text-muted-foreground" />
+				</Button>
 				<HeaderUserMenu {user} />
 			</div>
 		{/if}

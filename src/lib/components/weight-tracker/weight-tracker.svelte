@@ -1,9 +1,16 @@
 <script lang="ts">
 	import { WeightLogDialog } from '$lib/components/dialog';
 	import { getProfile } from '$lib/remote/profile.remote';
-	import { getLatestWeight, getWeightForDate, logWeight } from '$lib/remote/weight.remote';
+	import {
+		getLatestWeight,
+		getWeightForDate,
+		getWeightLogs,
+		logWeight
+	} from '$lib/remote/weight.remote';
 	import { parseLocalDate } from '$lib/utils/format';
 	import ScaleIcon from '@lucide/svelte/icons/scale';
+	import TrendingDownIcon from '@lucide/svelte/icons/trending-down';
+	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -13,16 +20,21 @@
 
 	const dateObj = $derived(parseLocalDate(date));
 	const initialDate = untrack(() => date);
-	const [initialProfile, initialLatestWeight, initialWeightForDate] = await Promise.all([
-		getProfile(),
-		getLatestWeight(),
-		getWeightForDate(initialDate)
-	]);
+	const [initialProfile, initialLatestWeight, initialWeightForDate, initialWeightLogs] =
+		await Promise.all([
+			getProfile(),
+			getLatestWeight(),
+			getWeightForDate(initialDate),
+			getWeightLogs()
+		]);
+
 	const profile = $derived(getProfile().current ?? initialProfile);
 	const latestWeight = $derived(getLatestWeight().current ?? initialLatestWeight);
 	const weightForDate = $derived(
 		getWeightForDate(date).current ?? (date === initialDate ? initialWeightForDate : null)
 	);
+	const weightLogs = $derived(getWeightLogs().current ?? initialWeightLogs);
+
 	const units = $derived(profile?.units ?? 'imperial');
 	const weightUnit = $derived(units === 'metric' ? 'kg' : 'lbs');
 	const weightGoal = $derived(profile?.weightGoal ?? null);
@@ -34,9 +46,37 @@
 		weightGoal !== null && currentWeight !== null ? currentWeight - weightGoal : 0
 	);
 
+	const startWeight = $derived.by(() => {
+		if (!weightLogs || weightLogs.length === 0) return null;
+		return weightLogs[weightLogs.length - 1].weight;
+	});
+
+	const progressPercent = $derived.by(() => {
+		if (startWeight === null || currentWeight === null || weightGoal === null) return 0;
+
+		const totalToLose = startWeight - weightGoal;
+		if (totalToLose <= 0) return 100;
+
+		const lost = startWeight - currentWeight;
+		const percent = (lost / totalToLose) * 100;
+		return Math.max(0, Math.min(100, percent));
+	});
+
+	const weightChange = $derived.by(() => {
+		if (startWeight === null || currentWeight === null) return null;
+		return currentWeight - startWeight;
+	});
+
+	const circumference = 2 * Math.PI * 16;
+	const strokeDashoffset = $derived(circumference - (progressPercent / 100) * circumference);
+
 	async function handleLogWeight(weight: number) {
 		try {
-			await logWeight({ weight, date }).updates(getLatestWeight(), getWeightForDate(date));
+			await logWeight({ weight, date }).updates(
+				getLatestWeight(),
+				getWeightForDate(date),
+				getWeightLogs()
+			);
 		} catch (err) {
 			console.error('Failed to log weight:', err);
 			toast.error('Failed to log weight');
@@ -51,17 +91,19 @@
 	<div class="relative size-12 shrink-0">
 		<svg class="size-full -rotate-90" viewBox="0 0 40 40">
 			<circle cx="20" cy="20" r="16" fill="none" class="stroke-muted" stroke-width="3" />
-			{#if weightAtGoal}
+			{#if weightGoal !== null && currentWeight !== null}
 				<circle
 					cx="20"
 					cy="20"
 					r="16"
 					fill="none"
-					class="stroke-emerald-500 transition-all duration-300"
+					class="{weightAtGoal
+						? 'stroke-emerald-500'
+						: 'stroke-primary'} transition-all duration-300"
 					stroke-width="3"
 					stroke-linecap="round"
-					stroke-dasharray={2 * Math.PI * 16}
-					stroke-dashoffset={0}
+					stroke-dasharray={circumference}
+					stroke-dashoffset={strokeDashoffset}
 				/>
 			{/if}
 		</svg>
@@ -98,6 +140,20 @@
 			</span>
 		{/key}
 	</div>
+	{#if weightChange !== null && weightChange !== 0}
+		<div
+			class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold {weightChange < 0
+				? 'bg-emerald-500/10 text-emerald-500'
+				: 'bg-rose-500/10 text-rose-500'}"
+		>
+			{#if weightChange < 0}
+				<TrendingDownIcon class="size-3" />
+			{:else}
+				<TrendingUpIcon class="size-3" />
+			{/if}
+			{weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}
+		</div>
+	{/if}
 </button>
 
 <WeightLogDialog
