@@ -35,7 +35,6 @@ CREATE TABLE "meal_logs" (
 	"protein" integer,
 	"carbs" integer,
 	"fat" integer,
-	"image" text,
 	"meal_date" text NOT NULL,
 	"meal_time" timestamp with time zone NOT NULL,
 	"created_at" timestamp NOT NULL,
