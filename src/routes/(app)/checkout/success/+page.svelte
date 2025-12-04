@@ -35,6 +35,7 @@
 <svelte:head>
 	<title>Subscription Active - Calories</title>
 	<meta name="description" content="Your subscription is now active" />
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="flex h-full flex-col bg-background">

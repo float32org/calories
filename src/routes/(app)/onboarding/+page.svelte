@@ -196,6 +196,7 @@
 <svelte:head>
 	<title>Get Started - Calories</title>
 	<meta name="description" content="Set up your personalized nutrition goals" />
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="flex h-full flex-col bg-background">

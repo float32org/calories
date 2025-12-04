@@ -23,8 +23,12 @@
 </script>
 
 <svelte:head>
-	<title>Sign in to Calories</title>
-	<meta name="description" content="Sign in to your Calories account to continue" />
+	<title>Sign In - Calories</title>
+	<meta
+		name="description"
+		content="Sign in to Calories to track your daily calories, meals, water intake, and weight goals with AI-powered nutrition tracking."
+	/>
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="flex h-full flex-col bg-background">

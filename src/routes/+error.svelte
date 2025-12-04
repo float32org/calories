@@ -25,7 +25,8 @@
 </script>
 
 <svelte:head>
-	<title>{errorInfo.title}</title>
+	<title>{errorInfo.title} - Calories</title>
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="flex h-dvh flex-col bg-background">

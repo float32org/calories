@@ -70,7 +70,7 @@
 </script>
 
 <svelte:head>
-	<title>Account</title>
+	<title>Account - Calories</title>
 	<meta name="description" content="Manage your account and security settings" />
 	<meta name="robots" content="noindex" />
 </svelte:head>

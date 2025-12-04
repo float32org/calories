@@ -41,6 +41,7 @@
 <svelte:head>
 	<title>Start Free Trial - Calories</title>
 	<meta name="description" content="Start your 7-day free trial of Calories Pro" />
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="flex h-full flex-col bg-background">
