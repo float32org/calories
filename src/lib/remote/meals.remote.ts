@@ -12,7 +12,7 @@ import {
 	imageExists
 } from '$lib/server/storage';
 import { error } from '@sveltejs/kit';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, gte } from 'drizzle-orm';
 import { z } from 'zod';
 
 const nutritionFieldsSchema = z.object({
@@ -279,4 +279,35 @@ export const getMeals = query(async () => {
 		.orderBy(desc(mealLogs.loggedAt));
 
 	return meals.map(mealToResponse);
+});
+
+export const getFrequentMeals = query(async () => {
+	const { locals } = getRequestEvent();
+
+	if (!locals.session || !locals.user) {
+		return error(401, 'Unauthorized');
+	}
+
+	const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+	const meals = await db
+		.select()
+		.from(mealLogs)
+		.where(and(eq(mealLogs.userId, locals.user.id), gte(mealLogs.loggedAt, thirtyDaysAgo)))
+		.orderBy(desc(mealLogs.loggedAt));
+
+	const frequency: Record<string, { meal: MealLog; count: number }> = {};
+	for (const meal of meals) {
+		const key = meal.name.toLowerCase().trim();
+		if (!frequency[key]) {
+			frequency[key] = { meal, count: 1 };
+		} else {
+			frequency[key].count++;
+		}
+	}
+
+	return Object.values(frequency)
+		.sort((a, b) => b.count - a.count || b.meal.loggedAt.getTime() - a.meal.loggedAt.getTime())
+		.slice(0, 5)
+		.map((f) => mealToResponse(f.meal));
 });

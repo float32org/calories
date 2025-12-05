@@ -3,6 +3,7 @@
 	import { Calendar } from '$lib/components/ui/calendar';
 	import { cn } from '$lib/utils/ui';
 	import { CalendarDate, type DateValue, getLocalTimeZone } from '@internationalized/date';
+	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import { Calendar as CalendarPrimitive } from 'bits-ui';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
@@ -58,6 +59,10 @@
 	contentClass="sm:max-w-sm"
 	headerClass="px-4"
 >
+	{#snippet icon()}
+		<CalendarIcon class="size-5 text-muted-foreground" />
+	{/snippet}
+
 	<div class="w-full flex justify-center">
 		<Calendar
 			type="single"

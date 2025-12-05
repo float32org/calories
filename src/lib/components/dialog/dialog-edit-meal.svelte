@@ -10,6 +10,7 @@
 	import NutritionSummary from '$lib/components/nutrition-summary.svelte';
 	import type { MealWithId } from '$lib/types';
 	import CheckIcon from '@lucide/svelte/icons/check';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
 	let {
@@ -90,6 +91,10 @@
 	subtitle="Update your meal details."
 	contentClass="sm:max-w-md"
 >
+	{#snippet icon()}
+		<PencilIcon class="size-5 text-muted-foreground" />
+	{/snippet}
+
 	<div class="space-y-6 py-4">
 		<div class="space-y-4">
 			<div class="space-y-2">

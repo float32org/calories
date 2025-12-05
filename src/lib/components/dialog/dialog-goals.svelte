@@ -9,6 +9,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { getProfile, updateProfile } from '$lib/remote/profile.remote';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
+	import TargetIcon from '@lucide/svelte/icons/target';
 	import { toast } from 'svelte-sonner';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
@@ -63,6 +64,10 @@
 	subtitle="Set your nutrition targets"
 	contentClass="sm:max-w-md"
 >
+	{#snippet icon()}
+		<TargetIcon class="size-5 text-muted-foreground" />
+	{/snippet}
+
 	<div class="space-y-6 py-4">
 		<div class="space-y-2">
 			<Label for="weightGoal">Goal Weight</Label>

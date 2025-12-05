@@ -8,6 +8,7 @@
 	} from '$lib/components/ui/input-group';
 	import { Label } from '$lib/components/ui/label';
 	import { getDisplayDate } from '$lib/utils/format';
+	import ScaleIcon from '@lucide/svelte/icons/scale';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
 	let {
@@ -45,6 +46,10 @@
 	subtitle="Logging for {getDisplayDate(date)}"
 	contentClass="sm:max-w-md"
 >
+	{#snippet icon()}
+		<ScaleIcon class="size-5 text-muted-foreground" />
+	{/snippet}
+
 	<div class="space-y-6 py-4">
 		<div class="space-y-2">
 			<Label for="weight">Current Weight</Label>

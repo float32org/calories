@@ -273,6 +273,10 @@
 	contentClass="sm:max-w-lg h-[100dvh] sm:h-[600px] flex flex-col overflow-hidden"
 	onBack={chat.messages.length > 0 ? reset : undefined}
 >
+	{#snippet icon()}
+		<ChefHatIcon class="size-5 text-muted-foreground" />
+	{/snippet}
+
 	<div class="flex flex-1 flex-col overflow-hidden">
 		<div
 			bind:this={messagesContainer}

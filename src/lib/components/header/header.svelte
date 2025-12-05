@@ -4,9 +4,9 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import ChartLineIcon from '@lucide/svelte/icons/chart-line';
+	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
 	import HamburgerIcon from '@lucide/svelte/icons/hamburger';
 	import RefrigeratorIcon from '@lucide/svelte/icons/refrigerator';
-	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import type { User } from 'better-auth';
 	import HeaderUserMenu from './header-user-menu.svelte';
 
@@ -61,7 +61,7 @@
 						class="size-8"
 						onclick={() => (assistantOpen = true)}
 					>
-						<SparklesIcon class="size-4 text-muted-foreground" />
+						<ChefHatIcon class="size-4 text-muted-foreground" />
 					</Button>
 					<Button variant="outline" size="icon" class="size-8" onclick={() => (pantryOpen = true)}>
 						<RefrigeratorIcon class="size-4 text-muted-foreground" />

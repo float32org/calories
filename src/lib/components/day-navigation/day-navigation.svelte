@@ -55,8 +55,8 @@
 </script>
 
 <header class="flex shrink-0 items-center justify-between px-4 py-2">
-	<Button variant="ghost" size="icon" class="rounded-full" onclick={() => handleDateChange(-1)}>
-		<ChevronLeftIcon class="size-5 text-muted-foreground" />
+	<Button variant="ghost" size="icon" onclick={() => handleDateChange(-1)}>
+		<ChevronLeftIcon class="size-4 text-muted-foreground" />
 	</Button>
 	<button class="flex flex-col items-center" onclick={() => (isDatePickerOpen = true)}>
 		<span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -66,14 +66,8 @@
 			{getDisplayDate(date)}
 		</span>
 	</button>
-	<Button
-		variant="ghost"
-		size="icon"
-		class="rounded-full"
-		onclick={() => handleDateChange(1)}
-		disabled={isToday}
-	>
-		<ChevronRightIcon class="size-5 text-muted-foreground" />
+	<Button variant="ghost" size="icon" onclick={() => handleDateChange(1)} disabled={isToday}>
+		<ChevronRightIcon class="size-4 text-muted-foreground" />
 	</Button>
 </header>
 
