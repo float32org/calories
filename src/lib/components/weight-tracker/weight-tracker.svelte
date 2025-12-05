@@ -63,8 +63,17 @@
 	});
 
 	const weightChange = $derived.by(() => {
-		if (startWeight === null || currentWeight === null) return null;
-		return currentWeight - startWeight;
+		if (!weightForDate?.weight) return null;
+
+		if (!weightLogs || weightLogs.length < 2) return null;
+
+		const currentIndex = weightLogs.findIndex((log) => log.date === date);
+		if (currentIndex === -1) return null;
+
+		const previousLog = weightLogs[currentIndex + 1];
+		if (!previousLog) return null;
+
+		return weightForDate.weight - previousLog.weight;
 	});
 
 	const circumference = 2 * Math.PI * 16;
