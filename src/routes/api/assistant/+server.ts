@@ -104,11 +104,9 @@ export const POST: RequestHandler = async (event) => {
 			stream: createUIMessageStream<Message>({
 				execute: async ({ writer }) => {
 					const result = streamText({
-						model: gateway('anthropic/claude-haiku-4.5'),
+						model: gateway('google/gemini-3-pro-preview'),
 						providerOptions: {
-							anthropic: {
-								thinking: { type: 'enabled', budgetTokens: 12000 }
-							}
+							google: { thinkingConfig: { thinkingLevel: 'high' } }
 						},
 						system: systemPrompt,
 						messages: convertToModelMessages(messages),

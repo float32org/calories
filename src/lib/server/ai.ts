@@ -1,4 +1,4 @@
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { gateway } from './gateway';
 
@@ -151,12 +151,12 @@ export async function analyzeMealFromImage(
 	base64Data: string,
 	mimeType: string
 ): Promise<MealAnalysis> {
-	const { object } = await generateObject({
-		model: gateway('anthropic/claude-haiku-4.5'),
+	const { output } = await generateText({
+		model: gateway('google/gemini-3-pro-preview'),
 		providerOptions: {
-			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
+			google: { thinkingConfig: { thinkingLevel: 'high' } }
 		},
-		schema: mealAnalysisSchema,
+		output: Output.object({ schema: mealAnalysisSchema }),
 		messages: [
 			{
 				role: 'system',
@@ -172,11 +172,11 @@ export async function analyzeMealFromImage(
 		]
 	});
 
-	if (!object.isFood) {
+	if (!output.isFood) {
 		return {
 			isFood: false,
 			isNutritionLabel: false,
-			rejectionReason: object.rejectionReason || 'This does not appear to be food.',
+			rejectionReason: output.rejectionReason || 'This does not appear to be food.',
 			name: '',
 			calories: 0,
 			protein: 0,
@@ -185,7 +185,7 @@ export async function analyzeMealFromImage(
 		};
 	}
 
-	return object;
+	return output;
 }
 
 const TEXT_SYSTEM_PROMPT = `<role>
@@ -246,12 +246,12 @@ WHEN UNCERTAIN: Estimate on the higher end. Users typically underreport.
 </output_format>`;
 
 export async function analyzeMealFromText(description: string): Promise<MealAnalysis> {
-	const { object } = await generateObject({
-		model: gateway('anthropic/claude-haiku-4.5'),
+	const { output } = await generateText({
+		model: gateway('google/gemini-3-pro-preview'),
 		providerOptions: {
-			anthropic: { thinking: { type: 'enabled', budgetTokens: 12000 } }
+			google: { thinkingConfig: { thinkingLevel: 'high' } }
 		},
-		schema: mealAnalysisSchema,
+		output: Output.object({ schema: mealAnalysisSchema }),
 		messages: [
 			{
 				role: 'system',
@@ -274,12 +274,12 @@ export async function analyzeMealFromText(description: string): Promise<MealAnal
 		]
 	});
 
-	if (!object.isFood) {
+	if (!output.isFood) {
 		return {
 			isFood: false,
 			isNutritionLabel: false,
 			rejectionReason:
-				object.rejectionReason || 'This does not appear to be a valid food description.',
+				output.rejectionReason || 'This does not appear to be a valid food description.',
 			name: '',
 			calories: 0,
 			protein: 0,
@@ -288,7 +288,7 @@ export async function analyzeMealFromText(description: string): Promise<MealAnal
 		};
 	}
 
-	return object;
+	return output;
 }
 
 const receiptItemSchema = z.object({
@@ -384,12 +384,12 @@ export async function analyzePantryImage(
 	base64Data: string,
 	mimeType: string
 ): Promise<PantryImageAnalysis> {
-	const { object } = await generateObject({
-		model: gateway('anthropic/claude-haiku-4.5'),
+	const { output } = await generateText({
+		model: gateway('google/gemini-3-pro-preview'),
 		providerOptions: {
-			anthropic: { thinking: { type: 'enabled', budgetTokens: 12000 } }
+			google: { thinkingConfig: { thinkingLevel: 'high' } }
 		},
-		schema: pantryImageAnalysisSchema,
+		output: Output.object({ schema: pantryImageAnalysisSchema }),
 		messages: [
 			{
 				role: 'system',
@@ -408,13 +408,13 @@ export async function analyzePantryImage(
 		]
 	});
 
-	if (object.imageType === 'invalid') {
+	if (output.imageType === 'invalid') {
 		return {
 			imageType: 'invalid',
-			rejectionReason: object.rejectionReason || 'Could not identify food items in this image.',
+			rejectionReason: output.rejectionReason || 'Could not identify food items in this image.',
 			items: []
 		};
 	}
 
-	return object;
+	return output;
 }
