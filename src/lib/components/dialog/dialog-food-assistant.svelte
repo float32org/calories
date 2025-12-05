@@ -3,6 +3,7 @@
 	import {
 		ToolDeleteMeal,
 		ToolEditMeal,
+		ToolLogWater,
 		ToolLogWeight,
 		ToolManagePantry,
 		ToolManagePreference,
@@ -104,6 +105,8 @@
 				await getProfile().refresh();
 			} else if (toolName === 'logWeight') {
 				await getLatestWeight().refresh();
+			} else if (toolName === 'logWater') {
+				await getWaterForDate(date).refresh();
 			}
 		},
 		onError: () => toast.error('Something went wrong. Please try again.')
@@ -120,6 +123,7 @@
 		'tool-queryWeightHistory',
 		'tool-updateGoals',
 		'tool-logWeight',
+		'tool-logWater',
 		'tool-deleteMeal',
 		'tool-editMeal',
 		'tool-queryPantry',
@@ -360,6 +364,8 @@
 									/>
 								{:else if part.type === 'tool-logWeight' && part.state === 'output-available'}
 									<ToolLogWeight output={part.output} />
+								{:else if part.type === 'tool-logWater' && part.state === 'output-available'}
+									<ToolLogWater output={part.output} />
 								{:else if part.type === 'tool-deleteMeal' && part.state === 'output-available'}
 									<ToolDeleteMeal output={part.output} />
 								{:else if part.type === 'tool-editMeal' && part.state === 'output-available'}

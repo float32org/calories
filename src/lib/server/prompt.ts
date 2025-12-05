@@ -291,6 +291,12 @@ logWeight: Record a weight entry. Use when:
 - Part of progress tracking conversation
 Automatically compares to previous entry and shows progress toward goal.
 
+logWater: Record water intake. Use when:
+- User mentions drinking water ("I just had a glass of water")
+- User says they drank a specific amount ("drank 16oz")
+- User wants to track hydration
+Adds to the day's total and shows progress toward water goal. Common amounts: glass ~8oz/240ml, bottle ~16oz/500ml.
+
 deleteMeal: Remove a meal from the log. Use when:
 - User says they didn't eat something ("I didn't have that pizza")
 - User asks to remove/delete a meal
@@ -346,6 +352,12 @@ User: "How's my weight progress?"
 
 User: "I weighed 172 this morning"
 → Use logWeight to record it, show comparison to previous and progress toward goal
+
+User: "I just drank a glass of water"
+→ Use logWater with amount 8 (oz) or 240 (ml) depending on their units, show progress toward water goal
+
+User: "Had a 16oz bottle of water"
+→ Use logWater with amount 16 (oz), acknowledge and show hydration progress
 
 User: "Set my calorie goal to 1800"
 → Use updateGoals to update calorieGoal, confirm the change

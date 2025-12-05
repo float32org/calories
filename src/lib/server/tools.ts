@@ -9,6 +9,7 @@ import {
 	pantryItems,
 	preferenceCategoryValues,
 	profiles,
+	waterLogs,
 	weightLogs
 } from './schema';
 
@@ -524,6 +525,78 @@ Always confirm the weight was logged successfully.`,
 	}
 });
 
+export const logWater = tool({
+	description: `Log water intake for the user. Use this when:
+- User mentions drinking water ("I just had a glass of water", "drank 16oz of water")
+- User wants to track their hydration
+- Any mention of water consumption
+
+Common amounts:
+- Glass of water: ~8 oz / 240ml
+- Bottle of water: ~16-20 oz / 500ml
+- Large bottle: ~32 oz / 1000ml`,
+	inputSchema: z.object({
+		amount: z
+			.number()
+			.int()
+			.positive()
+			.max(5000)
+			.describe("Amount of water in user's preferred unit (oz for imperial, ml for metric)"),
+		date: z
+			.string()
+			.optional()
+			.describe('Date for the entry in YYYY-MM-DD format (defaults to today)')
+	}),
+	execute: async (input, { experimental_context: context }) => {
+		const ctx = getToolContext(context);
+		const { amount, date } = input;
+
+		const [userProfile] = await db.select().from(profiles).where(eq(profiles.userId, ctx.userId));
+
+		const waterUnit = userProfile?.units === 'metric' ? 'ml' : 'oz';
+		const waterGoal = userProfile?.waterGoal ?? (userProfile?.units === 'metric' ? 2000 : 64);
+		const dateStr = date || getTodayInTimezone(ctx.timezone);
+
+		const [existing] = await db
+			.select()
+			.from(waterLogs)
+			.where(and(eq(waterLogs.userId, ctx.userId), eq(waterLogs.date, dateStr)));
+
+		let newTotal: number;
+
+		if (existing) {
+			newTotal = existing.amount + amount;
+			await db
+				.update(waterLogs)
+				.set({ amount: newTotal, loggedAt: new Date(), updatedAt: new Date() })
+				.where(eq(waterLogs.id, existing.id));
+		} else {
+			newTotal = amount;
+			await db.insert(waterLogs).values({
+				userId: ctx.userId,
+				amount: newTotal,
+				date: dateStr,
+				loggedAt: new Date()
+			});
+		}
+
+		const remaining = Math.max(0, waterGoal - newTotal);
+		const percentComplete = Math.round((newTotal / waterGoal) * 100);
+
+		return {
+			success: true,
+			logged: amount,
+			total: newTotal,
+			waterUnit,
+			waterGoal,
+			remaining,
+			percentComplete,
+			goalReached: newTotal >= waterGoal,
+			date: dateStr
+		};
+	}
+});
+
 export const deleteMeal = tool({
 	description: `Delete a meal from the user's log. Use this when:
 - User wants to remove a logged meal ("delete that pizza", "remove my lunch")
@@ -828,6 +901,7 @@ export const assistantTools = {
 	queryWeightHistory,
 	updateGoals,
 	logWeight,
+	logWater,
 	deleteMeal,
 	editMeal,
 	queryPantry,
