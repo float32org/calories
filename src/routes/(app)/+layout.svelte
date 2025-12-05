@@ -3,9 +3,7 @@
 	import type { LayoutData } from './$types';
 
 	import { page } from '$app/state';
-	import { FoodAssistantDialog, GoalsDialog, PantryDialog } from '$lib/components/dialog';
 	import { Header } from '$lib/components/header';
-	import { assistantOpen, goalsOpen, pantryOpen } from '$lib/stores/ui.store';
 	import { formatDate } from '$lib/utils/format';
 
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
@@ -20,18 +18,9 @@
 
 <div class="flex h-dvh flex-col">
 	{#if data.user}
-		<Header
-			user={data.user}
-			trialEnd={data.trialEnd}
-			onAssistantClick={() => assistantOpen.set(true)}
-			onPantryClick={() => pantryOpen.set(true)}
-		/>
+		<Header user={data.user} trialEnd={data.trialEnd} {selectedDate} />
 	{/if}
 	<main class="min-h-0 flex-1">
 		{@render children()}
 	</main>
 </div>
-
-<GoalsDialog bind:open={$goalsOpen} />
-<FoodAssistantDialog bind:open={$assistantOpen} date={selectedDate} />
-<PantryDialog bind:open={$pantryOpen} />

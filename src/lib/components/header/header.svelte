@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { FoodAssistantDialog, GoalsDialog, PantryDialog } from '$lib/components/dialog';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import ChartLineIcon from '@lucide/svelte/icons/chart-line';
@@ -12,14 +13,16 @@
 	let {
 		user,
 		trialEnd,
-		onAssistantClick,
-		onPantryClick
+		selectedDate
 	}: {
 		user?: User;
 		trialEnd?: Date | string | null;
-		onAssistantClick?: () => void;
-		onPantryClick?: () => void;
+		selectedDate?: string;
 	} = $props();
+
+	let goalsOpen = $state(false);
+	let assistantOpen = $state(false);
+	let pantryOpen = $state(false);
 
 	const trialDaysLeft = $derived.by(() => {
 		if (!trialEnd) return null;
@@ -51,21 +54,34 @@
 		</div>
 		{#if user}
 			<div class="flex items-center gap-1">
-				{#if onAssistantClick}
-					<Button variant="outline" size="icon" class="size-8" onclick={onAssistantClick}>
+				{#if selectedDate}
+					<Button
+						variant="outline"
+						size="icon"
+						class="size-8"
+						onclick={() => (assistantOpen = true)}
+					>
 						<SparklesIcon class="size-4 text-muted-foreground" />
 					</Button>
-				{/if}
-				{#if onPantryClick}
-					<Button variant="outline" size="icon" class="size-8" onclick={onPantryClick}>
+					<Button variant="outline" size="icon" class="size-8" onclick={() => (pantryOpen = true)}>
 						<RefrigeratorIcon class="size-4 text-muted-foreground" />
 					</Button>
+					<Button variant="outline" size="icon" class="size-8" href={resolve('/progress')}>
+						<ChartLineIcon class="size-4 text-muted-foreground" />
+					</Button>
 				{/if}
-				<Button variant="outline" size="icon" class="size-8" href={resolve('/progress')}>
-					<ChartLineIcon class="size-4 text-muted-foreground" />
-				</Button>
-				<HeaderUserMenu {user} />
+				<HeaderUserMenu {user} onGoalsClick={() => (goalsOpen = true)} />
 			</div>
 		{/if}
 	</div>
 </header>
+
+{#if goalsOpen}
+	<GoalsDialog bind:open={goalsOpen} />
+{/if}
+{#if assistantOpen && selectedDate}
+	<FoodAssistantDialog bind:open={assistantOpen} date={selectedDate} />
+{/if}
+{#if pantryOpen}
+	<PantryDialog bind:open={pantryOpen} />
+{/if}

@@ -6,8 +6,6 @@
 	import type { Snippet } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 
-	const isDesktop = new MediaQuery('(min-width: 768px)');
-
 	let {
 		open = $bindable(false),
 		title,
@@ -31,6 +29,8 @@
 		titleClass?: string;
 		headerClass?: string;
 	} = $props();
+
+	const isDesktop = new MediaQuery('(min-width: 768px)');
 </script>
 
 {#if isDesktop.current}

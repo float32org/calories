@@ -9,17 +9,16 @@
 		DropdownMenuItem,
 		DropdownMenuTrigger
 	} from '$lib/components/ui/dropdown-menu';
-	import { goalsOpen } from '$lib/stores/ui.store';
 	import GoalIcon from '@lucide/svelte/icons/goal';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MoonIcon from '@lucide/svelte/icons/moon';
-	import UserIcon from '@lucide/svelte/icons/user';
 	import SunIcon from '@lucide/svelte/icons/sun';
+	import UserIcon from '@lucide/svelte/icons/user';
 	import type { User } from 'better-auth';
 	import { mode, setMode } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 
-	let { user }: { user: User } = $props();
+	let { user, onGoalsClick }: { user: User; onGoalsClick?: () => void } = $props();
 </script>
 
 <DropdownMenu>
@@ -40,7 +39,7 @@
 		{/snippet}
 	</DropdownMenuTrigger>
 	<DropdownMenuContent align="end" preventScroll={false}>
-		<DropdownMenuItem onclick={() => goalsOpen.set(true)}>
+		<DropdownMenuItem onclick={onGoalsClick}>
 			<GoalIcon class="size-4" />
 			<span>Goals</span>
 		</DropdownMenuItem>

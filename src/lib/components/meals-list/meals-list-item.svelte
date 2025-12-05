@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import {
 		DropdownMenu,
 		DropdownMenuContent,
@@ -52,9 +51,7 @@
 						{meal.name}
 					</h3>
 					<p class="text-[11px] text-muted-foreground">
-						{#if browser}
-							{formatTime(meal.timestamp)}
-						{/if}
+						{formatTime(meal.timestamp)}
 					</p>
 				</div>
 				<DropdownMenu>
