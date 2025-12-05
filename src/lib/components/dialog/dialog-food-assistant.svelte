@@ -248,7 +248,7 @@
 	async function handleLogMeal(meal: MealInput) {
 		const [year, month, day] = date.split('-').map(Number);
 		const now = new Date();
-		const mealTime = new Date(
+		const loggedAt = new Date(
 			year,
 			month - 1,
 			day,
@@ -258,9 +258,7 @@
 		).toISOString();
 
 		try {
-			await addMeal({ ...meal, servings: meal.servings ?? 1, mealDate: date, mealTime }).updates(
-				getMeals()
-			);
+			await addMeal({ ...meal, servings: meal.servings ?? 1, date, loggedAt }).updates(getMeals());
 			toast.success(`Logged ${meal.name}`);
 		} catch {
 			toast.error('Failed to log meal');

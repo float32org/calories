@@ -187,8 +187,8 @@ export const mealLogs = pgTable(
 		protein: integer('protein'),
 		carbs: integer('carbs'),
 		fat: integer('fat'),
-		mealDate: text('meal_date').notNull(),
-		mealTime: timestamp('meal_time', { withTimezone: true }).notNull(),
+		date: text('date').notNull(),
+		loggedAt: timestamp('logged_at', { withTimezone: true }).notNull(),
 		createdAt: timestamp('created_at')
 			.$defaultFn(() => new Date())
 			.notNull(),
@@ -198,8 +198,8 @@ export const mealLogs = pgTable(
 	},
 	(table) => [
 		index('meals_user_id_idx').on(table.userId),
-		index('meals_meal_date_idx').on(table.mealDate),
-		index('meals_meal_time_idx').on(table.mealTime)
+		index('meals_date_idx').on(table.date),
+		index('meals_logged_at_idx').on(table.loggedAt)
 	]
 );
 
@@ -211,7 +211,10 @@ export const weightLogs = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		weight: real('weight').notNull(),
-		date: timestamp('date').notNull(),
+		date: text('date').notNull(),
+		loggedAt: timestamp('logged_at', { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull(),
 		createdAt: timestamp('created_at')
 			.$defaultFn(() => new Date())
 			.notNull(),
@@ -219,7 +222,10 @@ export const weightLogs = pgTable(
 			.$defaultFn(() => new Date())
 			.notNull()
 	},
-	(table) => [index('weight_logs_user_id_idx').on(table.userId)]
+	(table) => [
+		index('weight_logs_user_id_idx').on(table.userId),
+		index('weight_logs_date_idx').on(table.date)
+	]
 );
 
 export const waterLogs = pgTable(
@@ -231,6 +237,9 @@ export const waterLogs = pgTable(
 			.references(() => users.id, { onDelete: 'cascade' }),
 		amount: integer('amount').notNull(),
 		date: text('date').notNull(),
+		loggedAt: timestamp('logged_at', { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull(),
 		createdAt: timestamp('created_at')
 			.$defaultFn(() => new Date())
 			.notNull(),

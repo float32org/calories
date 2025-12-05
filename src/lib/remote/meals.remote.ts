@@ -50,8 +50,8 @@ function mealToResponse(meal: MealLog): MealResponse {
 		protein: meal.protein,
 		carbs: meal.carbs,
 		fat: meal.fat,
-		date: meal.mealDate,
-		timestamp: meal.mealTime.getTime()
+		date: meal.date,
+		timestamp: meal.loggedAt.getTime()
 	};
 }
 
@@ -191,8 +191,8 @@ export const analyzeMealText = command(
 
 export const addMeal = command(
 	mealFieldsSchema.extend({
-		mealDate: z.string(),
-		mealTime: z.string().optional()
+		date: z.string(),
+		loggedAt: z.string().optional()
 	}),
 	async (input) => {
 		const { locals } = getRequestEvent();
@@ -200,7 +200,7 @@ export const addMeal = command(
 			return error(401, 'Unauthorized');
 		}
 
-		const mealTime = input.mealTime ? new Date(input.mealTime) : new Date();
+		const loggedAt = input.loggedAt ? new Date(input.loggedAt) : new Date();
 
 		const [meal] = await db
 			.insert(mealLogs)
@@ -212,8 +212,8 @@ export const addMeal = command(
 				protein: input.protein,
 				carbs: input.carbs,
 				fat: input.fat,
-				mealDate: input.mealDate,
-				mealTime
+				date: input.date,
+				loggedAt
 			})
 			.returning();
 
@@ -276,7 +276,7 @@ export const getMeals = query(async () => {
 		.select()
 		.from(mealLogs)
 		.where(eq(mealLogs.userId, locals.user.id))
-		.orderBy(desc(mealLogs.mealTime));
+		.orderBy(desc(mealLogs.loggedAt));
 
 	return meals.map(mealToResponse);
 });

@@ -1,9 +1,8 @@
 import { command, getRequestEvent, query } from '$app/server';
 import { db } from '$lib/server/db';
 import { weightLogs } from '$lib/server/schema';
-import { formatDate, parseLocalDate } from '$lib/utils/format';
 import { error } from '@sveltejs/kit';
-import { and, desc, eq, gte, lt } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 export const logWeight = command(
@@ -17,26 +16,16 @@ export const logWeight = command(
 			return error(401, 'Unauthorized');
 		}
 
-		const date = parseLocalDate(input.date);
-		const nextDay = new Date(date);
-		nextDay.setDate(nextDay.getDate() + 1);
-
 		const [existing] = await db
 			.select()
 			.from(weightLogs)
-			.where(
-				and(
-					eq(weightLogs.userId, locals.user.id),
-					gte(weightLogs.date, date),
-					lt(weightLogs.date, nextDay)
-				)
-			);
+			.where(and(eq(weightLogs.userId, locals.user.id), eq(weightLogs.date, input.date)));
 
 		let log;
 		if (existing) {
 			[log] = await db
 				.update(weightLogs)
-				.set({ weight: input.weight, updatedAt: new Date() })
+				.set({ weight: input.weight, loggedAt: new Date(), updatedAt: new Date() })
 				.where(eq(weightLogs.id, existing.id))
 				.returning();
 		} else {
@@ -45,7 +34,8 @@ export const logWeight = command(
 				.values({
 					userId: locals.user.id,
 					weight: input.weight,
-					date
+					date: input.date,
+					loggedAt: new Date()
 				})
 				.returning();
 		}
@@ -53,8 +43,8 @@ export const logWeight = command(
 		return {
 			id: log.id,
 			weight: log.weight,
-			date: formatDate(log.date),
-			timestamp: log.date.getTime(),
+			date: log.date,
+			timestamp: log.loggedAt.getTime(),
 			updated: !!existing
 		};
 	}
@@ -76,8 +66,8 @@ export const getWeightLogs = query(async () => {
 	return logs.map((l) => ({
 		id: l.id,
 		weight: l.weight,
-		date: formatDate(l.date),
-		timestamp: l.date.getTime()
+		date: l.date,
+		timestamp: l.loggedAt.getTime()
 	}));
 });
 
@@ -98,7 +88,7 @@ export const getLatestWeight = query(async () => {
 
 	return {
 		weight: latest.weight,
-		date: formatDate(latest.date)
+		date: latest.date
 	};
 });
 
@@ -108,25 +98,15 @@ export const getWeightForDate = query(z.string(), async (date) => {
 		return error(401, 'Unauthorized');
 	}
 
-	const startDate = parseLocalDate(date);
-	const endDate = new Date(startDate);
-	endDate.setDate(endDate.getDate() + 1);
-
 	const [entry] = await db
 		.select()
 		.from(weightLogs)
-		.where(
-			and(
-				eq(weightLogs.userId, locals.user.id),
-				gte(weightLogs.date, startDate),
-				lt(weightLogs.date, endDate)
-			)
-		);
+		.where(and(eq(weightLogs.userId, locals.user.id), eq(weightLogs.date, date)));
 
 	if (!entry) return null;
 
 	return {
 		weight: entry.weight,
-		date: formatDate(entry.date)
+		date: entry.date
 	};
 });

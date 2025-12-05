@@ -2,6 +2,7 @@
 	import { getMeals } from '$lib/remote/meals.remote';
 	import { formatDate } from '$lib/utils/format';
 	import FlameIcon from '@lucide/svelte/icons/flame';
+	import { SvelteDate } from 'svelte/reactivity';
 
 	const initialMeals = await getMeals();
 	const meals = $derived(getMeals().current ?? initialMeals);
@@ -15,21 +16,21 @@
 		if (loggedDates.size === 0) return 0;
 
 		let streak = 0;
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-
+		const now = new SvelteDate();
+		const today = new SvelteDate(now.getFullYear(), now.getMonth(), now.getDate());
 		const todayStr = formatDate(today);
-		let checkDate = new Date(today);
 
+		let checkTime = today.getTime();
 		if (!loggedDates.has(todayStr)) {
-			checkDate.setDate(checkDate.getDate() - 1);
+			checkTime -= 24 * 60 * 60 * 1000;
 		}
 
 		while (true) {
+			const checkDate = new SvelteDate(checkTime);
 			const dateStr = formatDate(checkDate);
 			if (loggedDates.has(dateStr)) {
 				streak++;
-				checkDate.setDate(checkDate.getDate() - 1);
+				checkTime -= 24 * 60 * 60 * 1000;
 			} else {
 				break;
 			}

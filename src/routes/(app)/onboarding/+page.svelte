@@ -13,6 +13,7 @@
 	import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { completeOnboarding } from '$lib/remote/profile.remote';
 	import { markOnboardingComplete } from '$lib/remote/subscriptions.remote';
+	import { formatDate } from '$lib/utils/format';
 	import {
 		CalendarDate,
 		DateFormatter,
@@ -178,7 +179,10 @@
 				...(sex && { sex }),
 				...(birthDateValue && { birthDate: birthDateValue.toString() }),
 				...(goalWeight && { weightGoal: parseFloat(goalWeight) }),
-				...(currentWeight && { currentWeight: parseFloat(currentWeight) })
+				...(currentWeight && {
+					currentWeight: parseFloat(currentWeight),
+					currentWeightDate: formatDate(new Date())
+				})
 			});
 
 			await markOnboardingComplete();

@@ -121,7 +121,8 @@ export const completeOnboarding = command(
 		birthDate: z.string().optional(),
 		sex: z.enum(['male', 'female']).optional(),
 		activityLevel: z.enum(['sedentary', 'light', 'moderate', 'active', 'very_active']),
-		currentWeight: z.number().positive().optional()
+		currentWeight: z.number().positive().optional(),
+		currentWeightDate: z.string().optional()
 	}),
 	async (input) => {
 		const { locals } = getRequestEvent();
@@ -150,11 +151,12 @@ export const completeOnboarding = command(
 			return error(404, 'Profile not found');
 		}
 
-		if (input.currentWeight) {
+		if (input.currentWeight && input.currentWeightDate) {
 			await db.insert(weightLogs).values({
 				userId: locals.user.id,
 				weight: input.currentWeight,
-				date: new Date()
+				date: input.currentWeightDate,
+				loggedAt: new Date()
 			});
 		}
 

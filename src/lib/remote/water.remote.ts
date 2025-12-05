@@ -26,7 +26,7 @@ export const updateWater = command(
 			const newAmount = Math.max(0, existing.amount + input.amount);
 			[log] = await db
 				.update(waterLogs)
-				.set({ amount: newAmount, updatedAt: new Date() })
+				.set({ amount: newAmount, loggedAt: new Date(), updatedAt: new Date() })
 				.where(eq(waterLogs.id, existing.id))
 				.returning();
 		} else {
@@ -36,7 +36,8 @@ export const updateWater = command(
 				.values({
 					userId: locals.user.id,
 					amount: newAmount,
-					date: input.date
+					date: input.date,
+					loggedAt: new Date()
 				})
 				.returning();
 		}

@@ -8,6 +8,7 @@
 	import { scaleUtc } from 'd3-scale';
 	import { curveMonotoneX } from 'd3-shape';
 	import { Area, AreaChart, LinearGradient, Rule } from 'layerchart';
+	import { SvelteDate } from 'svelte/reactivity';
 
 	const [initialProfile, initialWeightLogs] = await Promise.all([getProfile(), getWeightLogs()]);
 
@@ -20,8 +21,8 @@
 	const chartData = $derived.by(() => {
 		if (!weightLogs || weightLogs.length === 0) return [];
 		return [...weightLogs].reverse().map((log) => {
-			const date = new Date(log.timestamp);
-			date.setHours(0, 0, 0, 0);
+			const d = new SvelteDate(log.timestamp);
+			const date = new SvelteDate(d.getFullYear(), d.getMonth(), d.getDate());
 			return { date, weight: log.weight };
 		});
 	});
@@ -48,11 +49,13 @@
 		const firstDate = chartData[0].date;
 		const lastDate = chartData[chartData.length - 1].date;
 		const days: Date[] = [];
-		const current = new Date(firstDate);
+		let currentTime = firstDate.getTime();
+		const lastTime = lastDate.getTime();
+		const dayMs = 24 * 60 * 60 * 1000;
 
-		while (current <= lastDate) {
-			days.push(new Date(current));
-			current.setDate(current.getDate() + 1);
+		while (currentTime <= lastTime) {
+			days.push(new SvelteDate(currentTime));
+			currentTime += dayMs;
 		}
 
 		if (days.length <= 7) return days;

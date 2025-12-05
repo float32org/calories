@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import { and, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, like, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from './db';
 import {
@@ -14,7 +14,19 @@ import {
 
 type ToolContext = {
 	userId: string;
+	timezone?: string;
 };
+
+function getTodayInTimezone(timezone?: string): string {
+	const now = new Date();
+	const formatter = new Intl.DateTimeFormat('en-CA', {
+		timeZone: timezone || 'UTC',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	});
+	return formatter.format(now);
+}
 
 export function getToolContext(context: unknown): ToolContext {
 	const ctx = context as ToolContext;
@@ -152,8 +164,8 @@ export const queryMealHistory = tool({
 			carbs: mealLogs.carbs,
 			fat: mealLogs.fat,
 			servings: mealLogs.servings,
-			mealDate: mealLogs.mealDate,
-			mealTime: mealLogs.mealTime
+			date: mealLogs.date,
+			loggedAt: mealLogs.loggedAt
 		};
 
 		let meals;
@@ -164,7 +176,7 @@ export const queryMealHistory = tool({
 					.select(mealSelect)
 					.from(mealLogs)
 					.where(eq(mealLogs.userId, ctx.userId))
-					.orderBy(desc(mealLogs.mealTime))
+					.orderBy(desc(mealLogs.loggedAt))
 					.limit(limit || 10);
 				break;
 
@@ -175,8 +187,8 @@ export const queryMealHistory = tool({
 				meals = await db
 					.select(mealSelect)
 					.from(mealLogs)
-					.where(and(eq(mealLogs.userId, ctx.userId), eq(mealLogs.mealDate, date)))
-					.orderBy(desc(mealLogs.mealTime));
+					.where(and(eq(mealLogs.userId, ctx.userId), eq(mealLogs.date, date)))
+					.orderBy(desc(mealLogs.loggedAt));
 				break;
 
 			case 'search':
@@ -187,7 +199,7 @@ export const queryMealHistory = tool({
 					.select(mealSelect)
 					.from(mealLogs)
 					.where(and(eq(mealLogs.userId, ctx.userId), like(mealLogs.name, `%${searchTerm}%`)))
-					.orderBy(desc(mealLogs.mealTime))
+					.orderBy(desc(mealLogs.loggedAt))
 					.limit(limit || 10);
 				break;
 
@@ -201,11 +213,11 @@ export const queryMealHistory = tool({
 					.where(
 						and(
 							eq(mealLogs.userId, ctx.userId),
-							gte(mealLogs.mealDate, startDate),
-							lte(mealLogs.mealDate, endDate)
+							gte(mealLogs.date, startDate),
+							lte(mealLogs.date, endDate)
 						)
 					)
-					.orderBy(desc(mealLogs.mealTime))
+					.orderBy(desc(mealLogs.loggedAt))
 					.limit(limit || 50);
 				break;
 
@@ -228,7 +240,7 @@ export const queryMealHistory = tool({
 			count: meals.length,
 			meals: meals.map((m) => ({
 				...m,
-				mealTime: m.mealTime.toISOString()
+				loggedAt: m.loggedAt.toISOString()
 			})),
 			totals
 		};
@@ -303,13 +315,16 @@ export const queryWeightHistory = tool({
 				const startingWeight = weights[weights.length - 1].weight;
 				const totalChange = currentWeight - startingWeight;
 
-				const sevenDaysAgo = new Date();
+				const now = new Date();
+				const sevenDaysAgo = new Date(now);
 				sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-				const thirtyDaysAgo = new Date();
+				const thirtyDaysAgo = new Date(now);
 				thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+				const weekAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+				const monthAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-				const weekAgoEntry = weights.find((w) => w.date <= sevenDaysAgo);
-				const monthAgoEntry = weights.find((w) => w.date <= thirtyDaysAgo);
+				const weekAgoEntry = weights.find((w) => w.date <= weekAgoStr);
+				const monthAgoEntry = weights.find((w) => w.date <= monthAgoStr);
 
 				return {
 					success: true,
@@ -325,8 +340,8 @@ export const queryWeightHistory = tool({
 						? parseFloat((currentWeight - monthAgoEntry.weight).toFixed(1))
 						: null,
 					totalEntries: weights.length,
-					firstEntry: weights[weights.length - 1].date.toISOString(),
-					lastEntry: weights[0].date.toISOString(),
+					firstEntry: weights[weights.length - 1].date,
+					lastEntry: weights[0].date,
 					weightUnit
 				};
 			}
@@ -341,8 +356,8 @@ export const queryWeightHistory = tool({
 					.where(
 						and(
 							eq(weightLogs.userId, ctx.userId),
-							gte(weightLogs.date, new Date(startDate)),
-							lte(weightLogs.date, new Date(endDate))
+							gte(weightLogs.date, startDate),
+							lte(weightLogs.date, endDate)
 						)
 					)
 					.orderBy(desc(weightLogs.date));
@@ -355,19 +370,12 @@ export const queryWeightHistory = tool({
 		return {
 			success: true,
 			count: weights.length,
-			entries: weights.map((w) => ({
-				...w,
-				date: w.date.toISOString()
-			})),
+			entries: weights,
 			weightUnit,
 			weightGoal
 		};
 	}
 });
-
-// ============================================================================
-// Goals Management Tool
-// ============================================================================
 
 export const updateGoals = tool({
 	description: `Update the user's calorie goal or weight goal. Use this when the user wants to:
@@ -439,10 +447,6 @@ Examples: "Set my calorie goal to 1800", "I want to reach 150 lbs", "Lower my da
 	}
 });
 
-// ============================================================================
-// Weight Logging Tool
-// ============================================================================
-
 export const logWeight = tool({
 	description: `Log a weight entry for the user. Use this when:
 - User mentions their current weight ("I weigh 175 lbs today")
@@ -468,19 +472,17 @@ Always confirm the weight was logged successfully.`,
 		const [userProfile] = await db.select().from(profiles).where(eq(profiles.userId, ctx.userId));
 
 		const weightUnit = userProfile?.units === 'metric' ? 'kg' : 'lbs';
-		const entryDate = date ? new Date(date) : new Date();
+		const dateStr = date || getTodayInTimezone(ctx.timezone);
 
 		const existingEntry = await db
 			.select()
 			.from(weightLogs)
-			.where(
-				and(eq(weightLogs.userId, ctx.userId), sql`DATE(${weightLogs.date}) = DATE(${entryDate})`)
-			);
+			.where(and(eq(weightLogs.userId, ctx.userId), eq(weightLogs.date, dateStr)));
 
 		if (existingEntry.length > 0) {
 			await db
 				.update(weightLogs)
-				.set({ weight, updatedAt: new Date() })
+				.set({ weight, loggedAt: new Date(), updatedAt: new Date() })
 				.where(eq(weightLogs.id, existingEntry[0].id));
 
 			return {
@@ -488,14 +490,15 @@ Always confirm the weight was logged successfully.`,
 				updated: true,
 				weight,
 				weightUnit,
-				date: entryDate.toISOString()
+				date: dateStr
 			};
 		}
 
 		await db.insert(weightLogs).values({
 			userId: ctx.userId,
 			weight,
-			date: entryDate
+			date: dateStr,
+			loggedAt: new Date()
 		});
 
 		const [previousEntry] = await db
@@ -513,17 +516,13 @@ Always confirm the weight was logged successfully.`,
 			created: true,
 			weight,
 			weightUnit,
-			date: entryDate.toISOString(),
+			date: dateStr,
 			previousWeight,
 			change,
 			weightGoal: userProfile?.weightGoal
 		};
 	}
 });
-
-// ============================================================================
-// Meal Management Tools
-// ============================================================================
 
 export const deleteMeal = tool({
 	description: `Delete a meal from the user's log. Use this when:
@@ -556,7 +555,7 @@ Use queryMealHistory first to find the meal ID if needed.`,
 				id: meal.id,
 				name: meal.name,
 				calories: meal.calories,
-				date: meal.mealDate
+				date: meal.date
 			}
 		};
 	}
@@ -637,7 +636,7 @@ Use queryMealHistory first to find the meal ID if needed.`,
 				carbs: updatedMeal.carbs,
 				fat: updatedMeal.fat,
 				servings: updatedMeal.servings,
-				date: updatedMeal.mealDate
+				date: updatedMeal.date
 			}
 		};
 	}

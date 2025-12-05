@@ -11,8 +11,8 @@
 		carbs: number | null;
 		fat: number | null;
 		servings: number;
-		mealDate: string;
-		mealTime: string;
+		date: string;
+		loggedAt: string;
 	};
 
 	type QueryOutput = {
@@ -60,8 +60,8 @@
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-sm font-medium">{meal.name}</p>
 						<p class="text-[11px] text-muted-foreground">
-							{getDisplayDate(parseLocalDate(meal.mealDate))} at {formatTime(
-								new Date(meal.mealTime).getTime()
+							{getDisplayDate(parseLocalDate(meal.date))} at {formatTime(
+								new Date(meal.loggedAt).getTime()
 							)}
 						</p>
 					</div>

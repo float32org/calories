@@ -35,8 +35,8 @@ CREATE TABLE "meal_logs" (
 	"protein" integer,
 	"carbs" integer,
 	"fat" integer,
-	"meal_date" text NOT NULL,
-	"meal_time" timestamp with time zone NOT NULL,
+	"date" text NOT NULL,
+	"logged_at" timestamp with time zone NOT NULL,
 	"created_at" timestamp NOT NULL,
 	"updated_at" timestamp NOT NULL
 );
@@ -124,6 +124,7 @@ CREATE TABLE "water_logs" (
 	"user_id" uuid NOT NULL,
 	"amount" integer NOT NULL,
 	"date" text NOT NULL,
+	"logged_at" timestamp with time zone NOT NULL,
 	"created_at" timestamp NOT NULL,
 	"updated_at" timestamp NOT NULL
 );
@@ -132,7 +133,8 @@ CREATE TABLE "weight_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"weight" real NOT NULL,
-	"date" timestamp NOT NULL,
+	"date" text NOT NULL,
+	"logged_at" timestamp with time zone NOT NULL,
 	"created_at" timestamp NOT NULL,
 	"updated_at" timestamp NOT NULL
 );
@@ -149,8 +151,8 @@ CREATE INDEX "accounts_user_id_idx" ON "accounts" USING btree ("user_id");--> st
 CREATE INDEX "food_preferences_user_id_idx" ON "food_preferences" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "food_preferences_category_idx" ON "food_preferences" USING btree ("category");--> statement-breakpoint
 CREATE INDEX "meals_user_id_idx" ON "meal_logs" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "meals_meal_date_idx" ON "meal_logs" USING btree ("meal_date");--> statement-breakpoint
-CREATE INDEX "meals_meal_time_idx" ON "meal_logs" USING btree ("meal_time");--> statement-breakpoint
+CREATE INDEX "meals_date_idx" ON "meal_logs" USING btree ("date");--> statement-breakpoint
+CREATE INDEX "meals_logged_at_idx" ON "meal_logs" USING btree ("logged_at");--> statement-breakpoint
 CREATE INDEX "pantry_items_user_id_idx" ON "pantry_items" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "pantry_items_category_idx" ON "pantry_items" USING btree ("category");--> statement-breakpoint
 CREATE INDEX "profiles_user_id_idx" ON "profiles" USING btree ("user_id");--> statement-breakpoint
@@ -161,4 +163,5 @@ CREATE INDEX "users_email_idx" ON "users" USING btree ("email");--> statement-br
 CREATE INDEX "verifications_identifier_idx" ON "verifications" USING btree ("identifier");--> statement-breakpoint
 CREATE INDEX "water_logs_user_id_idx" ON "water_logs" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "water_logs_date_idx" ON "water_logs" USING btree ("date");--> statement-breakpoint
-CREATE INDEX "weight_logs_user_id_idx" ON "weight_logs" USING btree ("user_id");
+CREATE INDEX "weight_logs_user_id_idx" ON "weight_logs" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "weight_logs_date_idx" ON "weight_logs" USING btree ("date");

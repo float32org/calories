@@ -40,7 +40,7 @@
 	async function handleAddMeal(meal: MealInput) {
 		const now = new Date();
 		const [year, month, day] = date.split('-').map(Number);
-		const mealTime = new Date(
+		const loggedAt = new Date(
 			year,
 			month - 1,
 			day,
@@ -57,8 +57,8 @@
 				protein: meal.protein,
 				carbs: meal.carbs,
 				fat: meal.fat,
-				mealDate: date,
-				mealTime
+				date,
+				loggedAt
 			}).updates(getMeals());
 		} catch (err) {
 			console.error('Failed to add meal:', err);

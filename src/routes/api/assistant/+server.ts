@@ -113,7 +113,7 @@ export const POST: RequestHandler = async (event) => {
 						system: systemPrompt,
 						messages: convertToModelMessages(messages),
 						tools: assistantTools,
-						experimental_context: { userId },
+						experimental_context: { userId, timezone: context.timezone },
 						experimental_transform: smoothStream({ chunking: 'word' }),
 						stopWhen: stepCountIs(10)
 					});

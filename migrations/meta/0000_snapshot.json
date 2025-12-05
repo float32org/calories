@@ -1,5 +1,5 @@
 {
-	"id": "49f1d4bc-5052-466b-bf34-d59ff2038fec",
+	"id": "d6e21592-2686-408e-add8-44c5e7570034",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
@@ -274,14 +274,14 @@
 					"primaryKey": false,
 					"notNull": false
 				},
-				"meal_date": {
-					"name": "meal_date",
+				"date": {
+					"name": "date",
 					"type": "text",
 					"primaryKey": false,
 					"notNull": true
 				},
-				"meal_time": {
-					"name": "meal_time",
+				"logged_at": {
+					"name": "logged_at",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true
@@ -315,11 +315,11 @@
 					"method": "btree",
 					"with": {}
 				},
-				"meals_meal_date_idx": {
-					"name": "meals_meal_date_idx",
+				"meals_date_idx": {
+					"name": "meals_date_idx",
 					"columns": [
 						{
-							"expression": "meal_date",
+							"expression": "date",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"
@@ -330,11 +330,11 @@
 					"method": "btree",
 					"with": {}
 				},
-				"meals_meal_time_idx": {
-					"name": "meals_meal_time_idx",
+				"meals_logged_at_idx": {
+					"name": "meals_logged_at_idx",
 					"columns": [
 						{
-							"expression": "meal_time",
+							"expression": "logged_at",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"
@@ -999,6 +999,12 @@
 					"primaryKey": false,
 					"notNull": true
 				},
+				"logged_at": {
+					"name": "logged_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
 				"created_at": {
 					"name": "created_at",
 					"type": "timestamp",
@@ -1086,7 +1092,13 @@
 				},
 				"date": {
 					"name": "date",
-					"type": "timestamp",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"logged_at": {
+					"name": "logged_at",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true
 				},
@@ -1109,6 +1121,21 @@
 					"columns": [
 						{
 							"expression": "user_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"weight_logs_date_idx": {
+					"name": "weight_logs_date_idx",
+					"columns": [
+						{
+							"expression": "date",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"
