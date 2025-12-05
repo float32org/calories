@@ -97,6 +97,10 @@
 		<div class="flex h-[180px] items-center justify-center">
 			<p class="text-sm text-muted-foreground">No weight data yet</p>
 		</div>
+	{:else if chartData.length === 1}
+		<div class="flex h-[180px] items-center justify-center">
+			<p class="text-sm text-muted-foreground">Log more weight to see trends</p>
+		</div>
 	{:else}
 		<Chart.Container config={chartConfig} class="h-[180px] w-full">
 			<AreaChart

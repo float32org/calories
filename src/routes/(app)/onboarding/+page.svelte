@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { Button, buttonVariants } from '$lib/components/ui/button';
+	import { Button } from '$lib/components/ui/button';
 	import { Calendar } from '$lib/components/ui/calendar';
 	import {
 		InputGroup,
@@ -13,7 +13,6 @@
 	import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { completeOnboarding } from '$lib/remote/profile.remote';
 	import { markOnboardingComplete } from '$lib/remote/subscriptions.remote';
-	import { cn } from '$lib/utils/ui';
 	import {
 		CalendarDate,
 		DateFormatter,
@@ -260,7 +259,7 @@
 							</Label>
 							<div class="grid grid-cols-2 gap-2">
 								<button
-									class="relative flex h-14 items-center justify-center rounded-2xl font-bold transition-all {units ===
+									class="relative flex h-12 items-center justify-center rounded-xl font-medium transition-all {units ===
 									'imperial'
 										? 'bg-foreground text-background'
 										: 'bg-muted text-muted-foreground hover:text-foreground'}"
@@ -269,7 +268,7 @@
 									<span class="text-lg">Imperial</span>
 								</button>
 								<button
-									class="relative flex h-14 items-center justify-center rounded-2xl font-bold transition-all {units ===
+									class="relative flex h-12 items-center justify-center rounded-xl font-medium transition-all {units ===
 									'metric'
 										? 'bg-foreground text-background'
 										: 'bg-muted text-muted-foreground hover:text-foreground'}"
@@ -314,17 +313,19 @@
 								Birth Date <span class="font-normal">(optional)</span>
 							</Label>
 							<Popover>
-								<PopoverTrigger
-									class={cn(
-										buttonVariants({ variant: 'outline' }),
-										'h-12 w-full justify-start rounded-xl ps-4 text-start font-medium',
-										!birthDateValue && 'text-muted-foreground'
-									)}
-								>
-									{birthDateValue
-										? df.format(birthDateValue.toDate(getLocalTimeZone()))
-										: 'Select your birth date'}
-									<CalendarIcon class="ms-auto size-4 opacity-50" />
+								<PopoverTrigger>
+									{#snippet child({ props })}
+										<Button
+											{...props}
+											variant="outline"
+											class="h-12 w-full justify-start rounded-xl ps-4 text-start font-medium"
+										>
+											{birthDateValue
+												? df.format(birthDateValue.toDate(getLocalTimeZone()))
+												: 'Select your birth date'}
+											<CalendarIcon class="ms-auto size-4 opacity-50" />
+										</Button>
+									{/snippet}
 								</PopoverTrigger>
 								<PopoverContent class="w-auto p-0" side="top">
 									<Calendar
@@ -362,10 +363,10 @@
 							</Label>
 							{#if units === 'imperial'}
 								<div class="flex gap-2">
-									<InputGroup class="h-14 flex-1">
+									<InputGroup class="h-12 flex-1">
 										<InputGroupInput
 											type="number"
-											class="h-full rounded-2xl text-lg font-bold"
+											class="h-full rounded-xl font-medium"
 											placeholder="5"
 											bind:value={heightFeet}
 										/>
@@ -373,10 +374,10 @@
 											<InputGroupText class="text-muted-foreground">ft</InputGroupText>
 										</InputGroupAddon>
 									</InputGroup>
-									<InputGroup class="h-14 flex-1">
+									<InputGroup class="h-12 flex-1">
 										<InputGroupInput
 											type="number"
-											class="h-full rounded-2xl text-lg font-bold"
+											class="h-full rounded-xl font-medium"
 											placeholder="8"
 											bind:value={heightInches}
 										/>
@@ -386,10 +387,10 @@
 									</InputGroup>
 								</div>
 							{:else}
-								<InputGroup class="h-14">
+								<InputGroup class="h-12">
 									<InputGroupInput
 										type="number"
-										class="h-full rounded-2xl text-lg font-bold"
+										class="h-full rounded-xl font-medium"
 										placeholder="175"
 										bind:value={height}
 									/>
@@ -407,12 +408,12 @@
 							>
 								Current Weight
 							</Label>
-							<InputGroup class="h-14">
+							<InputGroup class="h-12">
 								<InputGroupInput
 									id="currentWeight"
 									type="number"
 									step="0.1"
-									class="h-full rounded-2xl text-lg font-bold"
+									class="h-full rounded-xl font-medium"
 									placeholder={units === 'imperial' ? '160' : '73'}
 									bind:value={currentWeight}
 								/>
@@ -498,12 +499,12 @@
 							>
 								Goal Weight <span class="font-normal">(optional)</span>
 							</Label>
-							<InputGroup class="h-14">
+							<InputGroup class="h-12">
 								<InputGroupInput
 									id="goalWeight"
 									type="number"
 									step="0.1"
-									class="h-full rounded-2xl text-lg font-bold"
+									class="h-full rounded-xl font-medium"
 									placeholder={units === 'imperial' ? '150' : '68'}
 									bind:value={goalWeight}
 								/>
@@ -554,7 +555,6 @@
 							</p>
 						</div>
 					</div>
-
 					<div class="mt-8 flex gap-3">
 						<Button variant="ghost" class="h-12 flex-1 rounded-xl font-bold" onclick={prevStep}>
 							Back
