@@ -10,7 +10,7 @@
 	import { formatTimeAgo } from '$lib/utils/format';
 	import AlertTriangleIcon from '@lucide/svelte/icons/alert-triangle';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
-	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import CreditCardIcon from '@lucide/svelte/icons/credit-card';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
 	import TrashIcon from '@lucide/svelte/icons/trash';
@@ -78,13 +78,8 @@
 <div class="flex h-full flex-col bg-background">
 	<div class="mx-auto flex h-full w-full max-w-md flex-col overflow-hidden">
 		<header class="flex shrink-0 items-center gap-4 px-4 py-2">
-			<Button
-				variant="ghost"
-				size="icon"
-				class="rounded-full"
-				onclick={() => window.history.back()}
-			>
-				<ChevronLeftIcon class="size-5 text-muted-foreground" />
+			<Button variant="ghost" size="icon" onclick={() => window.history.back()}>
+				<ArrowLeftIcon class="size-4 text-muted-foreground" />
 			</Button>
 			<h1 class="text-lg font-bold">Account</h1>
 		</header>

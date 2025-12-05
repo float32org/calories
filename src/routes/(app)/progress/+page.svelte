@@ -4,7 +4,7 @@
 	import { StreakCard } from '$lib/components/streak-card';
 	import { Button } from '$lib/components/ui/button';
 	import { WeightChart } from '$lib/components/weight-chart';
-	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 </script>
 
 <svelte:head>
@@ -16,13 +16,8 @@
 <div class="flex h-full flex-col bg-background">
 	<div class="mx-auto flex h-full w-full max-w-md flex-col overflow-hidden">
 		<header class="flex shrink-0 items-center gap-4 px-4 py-2">
-			<Button
-				variant="ghost"
-				size="icon"
-				class="rounded-full"
-				onclick={() => window.history.back()}
-			>
-				<ChevronLeftIcon class="size-5 text-muted-foreground" />
+			<Button variant="ghost" size="icon" onclick={() => window.history.back()}>
+				<ArrowLeftIcon class="size-4 text-muted-foreground" />
 			</Button>
 			<h1 class="text-lg font-bold">Progress</h1>
 		</header>
