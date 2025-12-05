@@ -269,7 +269,7 @@
 <ResponsiveDialog
 	bind:open
 	title="Food Assistant"
-	subtitle="Get personalized meal suggestions"
+	subtitle="Ask me anything about food"
 	contentClass="sm:max-w-lg h-[100dvh] sm:h-[600px] flex flex-col overflow-hidden"
 	onBack={chat.messages.length > 0 ? reset : undefined}
 >
