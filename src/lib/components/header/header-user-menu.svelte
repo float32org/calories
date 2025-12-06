@@ -11,12 +11,9 @@
 	} from '$lib/components/ui/dropdown-menu';
 	import GoalIcon from '@lucide/svelte/icons/goal';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
-	import MoonIcon from '@lucide/svelte/icons/moon';
-	import SunIcon from '@lucide/svelte/icons/sun';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import UserIcon from '@lucide/svelte/icons/user';
-	import UserCogIcon from '@lucide/svelte/icons/user-cog';
 	import type { User } from 'better-auth';
-	import { mode, setMode } from 'mode-watcher';
 
 	let {
 		user,
@@ -48,29 +45,12 @@
 			<span>Goals</span>
 		</DropdownMenuItem>
 		<DropdownMenuItem onclick={onProfileClick}>
-			<UserCogIcon class="size-4" />
+			<UserIcon class="size-4" />
 			<span>Profile</span>
 		</DropdownMenuItem>
-		<DropdownMenuItem onclick={() => goto(resolve('/account'))}>
-			<UserIcon class="size-4" />
-			<span>Account</span>
-		</DropdownMenuItem>
-		<DropdownMenuItem
-			onclick={() => {
-				if (mode.current === 'light') {
-					setMode('dark');
-				} else {
-					setMode('light');
-				}
-			}}
-		>
-			{#if mode.current === 'light'}
-				<MoonIcon class="size-4" />
-				<span>Dark Mode</span>
-			{:else}
-				<SunIcon class="size-4" />
-				<span>Light Mode</span>
-			{/if}
+		<DropdownMenuItem onclick={() => goto(resolve('/settings'))}>
+			<SettingsIcon class="size-4" />
+			<span>Settings</span>
 		</DropdownMenuItem>
 		<DropdownMenuItem
 			onclick={async () => {

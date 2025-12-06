@@ -12,10 +12,15 @@
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import CreditCardIcon from '@lucide/svelte/icons/credit-card';
+	import MonitorIcon from '@lucide/svelte/icons/monitor';
+	import MoonIcon from '@lucide/svelte/icons/moon';
+	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
+	import SunIcon from '@lucide/svelte/icons/sun';
 	import TrashIcon from '@lucide/svelte/icons/trash';
 	import UserIcon from '@lucide/svelte/icons/user';
 	import XCircleIcon from '@lucide/svelte/icons/x-circle';
+	import { resetMode, setMode, userPrefersMode } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 	import type { PageData } from './$types';
 
@@ -69,8 +74,8 @@
 </script>
 
 <svelte:head>
-	<title>Account - Calories</title>
-	<meta name="description" content="Manage your account and security settings" />
+	<title>Settings - Calories</title>
+	<meta name="description" content="Manage your settings and preferences" />
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
@@ -80,7 +85,7 @@
 			<Button variant="ghost" size="icon" onclick={() => window.history.back()}>
 				<ArrowLeftIcon class="size-4 text-muted-foreground" />
 			</Button>
-			<h1 class="text-lg font-bold">Account</h1>
+			<h1 class="text-lg font-bold">Settings</h1>
 		</header>
 
 		<div class="flex-1 overflow-y-auto px-6 pb-20 no-scrollbar">
@@ -92,32 +97,69 @@
 						<UserIcon class="size-4" />
 						Account
 					</h2>
-					<div class="flex flex-col gap-3 rounded-3xl bg-card/50 p-5 transition-all">
-						<div class="flex items-center gap-4">
-							<div class="relative shrink-0">
-								<Avatar class="size-16 rounded-2xl border-2 border-background shadow-sm">
-									<AvatarImage
-										src={data.user?.image ?? undefined}
-										alt={data.user?.name ?? 'User avatar'}
-									/>
-									<AvatarFallback class="rounded-2xl text-lg"
-										>{data.user?.name?.[0] ?? 'U'}</AvatarFallback
-									>
-								</Avatar>
-							</div>
-							<div class="flex flex-col gap-1 min-w-0">
-								<h3 class="font-bold text-lg leading-tight truncate">
-									{data.user?.name ?? 'Not set'}
-								</h3>
-								<p class="text-sm text-muted-foreground truncate">{data.user?.email}</p>
-								<div class="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground/80">
-									<CalendarIcon class="size-3" />
-									<span
-										>Joined {data.user?.createdAt ? formatTimeAgo(data.user.createdAt) : '-'}</span
-									>
-								</div>
+					<div class="flex items-center gap-4 rounded-3xl bg-card/50 p-4 transition-all">
+						<div class="relative shrink-0">
+							<Avatar class="size-16 rounded-2xl border-2 border-background shadow-sm">
+								<AvatarImage
+									src={data.user?.image ?? undefined}
+									alt={data.user?.name ?? 'User avatar'}
+								/>
+								<AvatarFallback class="rounded-2xl text-lg"
+									>{data.user?.name?.[0] ?? 'U'}</AvatarFallback
+								>
+							</Avatar>
+						</div>
+						<div class="flex flex-col gap-1 min-w-0">
+							<h3 class="font-bold text-lg leading-tight truncate">
+								{data.user?.name ?? 'Not set'}
+							</h3>
+							<p class="text-sm text-muted-foreground truncate">{data.user?.email}</p>
+							<div class="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground/80">
+								<CalendarIcon class="size-3" />
+								<span>Joined {data.user?.createdAt ? formatTimeAgo(data.user.createdAt) : '-'}</span
+								>
 							</div>
 						</div>
+					</div>
+				</div>
+				<div class="flex flex-col gap-3">
+					<h2
+						class="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider"
+					>
+						<PaletteIcon class="size-4" />
+						Appearance
+					</h2>
+					<div class="grid grid-cols-3 gap-2 rounded-3xl bg-card/50 p-3 transition-all">
+						<button
+							onclick={() => resetMode()}
+							class="flex flex-col items-center gap-1.5 rounded-2xl p-2.5 transition-all {userPrefersMode.current ===
+							'system'
+								? 'bg-primary text-primary-foreground'
+								: 'bg-muted/60 hover:bg-muted'}"
+						>
+							<MonitorIcon class="size-5" />
+							<span class="text-xs font-medium">System</span>
+						</button>
+						<button
+							onclick={() => setMode('light')}
+							class="flex flex-col items-center gap-1.5 rounded-2xl p-2.5 transition-all {userPrefersMode.current ===
+							'light'
+								? 'bg-primary text-primary-foreground'
+								: 'bg-muted/60 hover:bg-muted'}"
+						>
+							<SunIcon class="size-5" />
+							<span class="text-xs font-medium">Light</span>
+						</button>
+						<button
+							onclick={() => setMode('dark')}
+							class="flex flex-col items-center gap-1.5 rounded-2xl p-2.5 transition-all {userPrefersMode.current ===
+							'dark'
+								? 'bg-primary text-primary-foreground'
+								: 'bg-muted/60 hover:bg-muted'}"
+						>
+							<MoonIcon class="size-5" />
+							<span class="text-xs font-medium">Dark</span>
+						</button>
 					</div>
 				</div>
 				{#if subscriptionData.required}
@@ -248,11 +290,12 @@
 						Danger Zone
 					</h2>
 					<div class="rounded-3xl bg-destructive/5 border border-destructive/10 p-5">
-						<h3 class="font-bold text-foreground mb-1">Delete Account</h3>
-						<p class="text-xs text-muted-foreground mb-4">
-							Permanently remove your account and all associated data. This action cannot be undone.
-							Your subscription will be canceled immediately.
-						</p>
+						<h3 class="font-bold text-foreground mb-2">Delete Account</h3>
+						<ul class="text-xs text-muted-foreground mb-4 space-y-1 list-disc list-inside">
+							<li>Permanently remove your account and data.</li>
+							<li>Immediately cancel any active subscription.</li>
+							<li>Cannot be undone.</li>
+						</ul>
 						<Button
 							variant="destructive"
 							class="w-full rounded-xl font-bold"
