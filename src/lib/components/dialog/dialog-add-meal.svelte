@@ -290,7 +290,7 @@
 		<UtensilsIcon class="size-5 text-muted-foreground" />
 	{/snippet}
 
-	<div class="py-4">
+	<div class="py-4 overflow-hidden">
 		{#if view === 'select'}
 			<div class="space-y-4">
 				{#if frequentMeals.length > 0}
@@ -310,9 +310,7 @@
 								>
 									<div class="flex-1 min-w-0">
 										<p class="font-medium text-sm truncate">{meal.name}</p>
-										<p class="text-xs text-muted-foreground">
-											{meal.calories} kcal{#if meal.protein}&nbsp;· {meal.protein}g protein{/if}
-										</p>
+										<p class="text-xs text-muted-foreground">{meal.calories} kcal</p>
 									</div>
 									<div
 										class="shrink-0 size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transition-opacity"
