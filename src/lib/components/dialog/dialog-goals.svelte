@@ -15,6 +15,8 @@
 		calculateCalorieGoal,
 		calculateTDEE,
 		calculateWaterGoal,
+		getWaterUnit,
+		getWeightUnit,
 		kgToLbs,
 		lbsToKg
 	} from '$lib/utils/calculations';
@@ -39,8 +41,8 @@
 	let weightGoal = $state('');
 	let saving = $state(false);
 
-	const weightUnit = $derived(units === 'imperial' ? 'lbs' : 'kg');
-	const waterUnit = $derived(units === 'imperial' ? 'oz' : 'ml');
+	const weightUnit = $derived(getWeightUnit(units));
+	const waterUnit = $derived(getWaterUnit(units));
 
 	function recalculateGoals() {
 		if (!profile || !latestWeight) {

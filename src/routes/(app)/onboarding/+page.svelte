@@ -14,6 +14,7 @@
 	import { completeOnboarding } from '$lib/remote/profile.remote';
 	import { markOnboardingComplete } from '$lib/remote/subscriptions.remote';
 	import {
+		activityOptions,
 		calculateBMR,
 		calculateCalorieGoal,
 		calculateTDEE,
@@ -55,14 +56,6 @@
 	let saving = $state(false);
 
 	const totalSteps = 5;
-
-	const activityOptions = [
-		{ value: 'sedentary', label: 'Sedentary', desc: 'Little to no exercise' },
-		{ value: 'light', label: 'Lightly Active', desc: 'Light exercise 1-3 days/week' },
-		{ value: 'moderate', label: 'Moderately Active', desc: 'Moderate exercise 3-5 days/week' },
-		{ value: 'active', label: 'Very Active', desc: 'Hard exercise 6-7 days/week' },
-		{ value: 'very_active', label: 'Extra Active', desc: 'Very hard exercise & physical job' }
-	] as const;
 
 	function calculateAgeFromDateValue(birthDate: DateValue | undefined): number {
 		if (!birthDate) return 30;

@@ -7,6 +7,7 @@
 		getWeightLogs,
 		logWeight
 	} from '$lib/remote/weight.remote';
+	import { getWeightUnit } from '$lib/utils/calculations';
 	import { parseLocalDate } from '$lib/utils/format';
 	import ScaleIcon from '@lucide/svelte/icons/scale';
 	import TrendingDownIcon from '@lucide/svelte/icons/trending-down';
@@ -36,7 +37,7 @@
 	const weightLogs = $derived(getWeightLogs().current ?? initialWeightLogs);
 
 	const units = $derived(profile?.units ?? 'imperial');
-	const weightUnit = $derived(units === 'metric' ? 'kg' : 'lbs');
+	const weightUnit = $derived(getWeightUnit(units));
 	const weightGoal = $derived(profile?.weightGoal ?? null);
 	const currentWeight = $derived(latestWeight?.weight ?? null);
 	const weightAtGoal = $derived(

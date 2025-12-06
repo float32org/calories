@@ -1,3 +1,14 @@
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+export type Units = 'imperial' | 'metric';
+
+export const activityOptions = [
+	{ value: 'sedentary', label: 'Sedentary', desc: 'Little to no exercise' },
+	{ value: 'light', label: 'Lightly Active', desc: 'Light exercise 1-3 days/week' },
+	{ value: 'moderate', label: 'Moderately Active', desc: 'Moderate exercise 3-5 days/week' },
+	{ value: 'active', label: 'Very Active', desc: 'Hard exercise 6-7 days/week' },
+	{ value: 'very_active', label: 'Extra Active', desc: 'Very hard exercise & physical job' }
+] as const;
+
 export const activityMultipliers: Record<string, number> = {
 	sedentary: 1.2,
 	light: 1.375,
@@ -5,6 +16,14 @@ export const activityMultipliers: Record<string, number> = {
 	active: 1.725,
 	very_active: 1.9
 };
+
+export function getWeightUnit(units: Units): string {
+	return units === 'imperial' ? 'lbs' : 'kg';
+}
+
+export function getWaterUnit(units: Units): string {
+	return units === 'imperial' ? 'oz' : 'ml';
+}
 
 export function calculateAge(birthDate: string | Date | null): number {
 	if (!birthDate) return 30;

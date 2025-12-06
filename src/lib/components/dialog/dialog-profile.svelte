@@ -10,6 +10,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { getProfile, updateProfile } from '$lib/remote/profile.remote';
+	import { activityOptions, inchesToCm } from '$lib/utils/calculations';
 	import {
 		CalendarDate,
 		DateFormatter,
@@ -41,14 +42,6 @@
 		'moderate'
 	);
 	let saving = $state(false);
-
-	const activityOptions = [
-		{ value: 'sedentary', label: 'Sedentary', desc: 'Little to no exercise' },
-		{ value: 'light', label: 'Lightly Active', desc: 'Light exercise 1-3 days/week' },
-		{ value: 'moderate', label: 'Moderately Active', desc: 'Moderate exercise 3-5 days/week' },
-		{ value: 'active', label: 'Very Active', desc: 'Hard exercise 6-7 days/week' },
-		{ value: 'very_active', label: 'Extra Active', desc: 'Very hard exercise & physical job' }
-	] as const;
 
 	$effect(() => {
 		if (open && profile) {
@@ -91,9 +84,7 @@
 		if (units === 'metric') {
 			return parseFloat(height) || 0;
 		}
-		const feet = parseFloat(heightFeet) || 0;
-		const inches = parseFloat(heightInches) || 0;
-		return (feet * 12 + inches) * 2.54;
+		return inchesToCm(parseFloat(heightFeet) || 0, parseFloat(heightInches) || 0);
 	}
 
 	async function handleSave() {

@@ -2,6 +2,7 @@
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { getProfile } from '$lib/remote/profile.remote';
 	import { getWeightLogs } from '$lib/remote/weight.remote';
+	import { getWeightUnit } from '$lib/utils/calculations';
 	import ScaleIcon from '@lucide/svelte/icons/scale';
 	import TrendingDownIcon from '@lucide/svelte/icons/trending-down';
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
@@ -15,7 +16,7 @@
 	const profile = $derived(getProfile().current ?? initialProfile);
 	const weightLogs = $derived(getWeightLogs().current ?? initialWeightLogs);
 	const units = $derived(profile?.units ?? 'imperial');
-	const weightUnit = $derived(units === 'metric' ? 'kg' : 'lbs');
+	const weightUnit = $derived(getWeightUnit(units));
 	const weightGoal = $derived(profile?.weightGoal ?? null);
 
 	const chartData = $derived.by(() => {
