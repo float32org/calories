@@ -80,19 +80,19 @@
 				<div class="flex items-center gap-1">
 					<span
 						class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-						style="background: oklch(0.65 0.14 25 / 0.15); color: oklch(0.65 0.14 25)"
+						style="background: oklch(0.65 0.12 250 / 0.15); color: oklch(0.65 0.12 250)"
 					>
 						{meal.protein ?? 0}g P
 					</span>
 					<span
 						class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-						style="background: oklch(0.65 0.10 250 / 0.15); color: oklch(0.65 0.10 250)"
+						style="background: oklch(0.75 0.14 70 / 0.15); color: oklch(0.75 0.14 70)"
 					>
 						{meal.carbs ?? 0}g C
 					</span>
 					<span
 						class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-						style="background: oklch(0.75 0.12 85 / 0.15); color: oklch(0.75 0.12 85)"
+						style="background: oklch(0.65 0.16 15 / 0.15); color: oklch(0.65 0.16 15)"
 					>
 						{meal.fat ?? 0}g F
 					</span>

@@ -44,13 +44,13 @@
 
 		<div class="mt-2 flex items-center gap-6">
 			<div class="flex flex-col items-center gap-1">
-				<span class="text-sm font-bold" style="color: oklch(0.65 0.14 25)">
+				<span class="text-sm font-bold" style="color: oklch(0.65 0.12 250)">
 					{totalProtein}<span class="text-muted-foreground/60 font-medium">/{proteinGoal}g</span>
 				</span>
 				<div class="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
 					<div
 						class="h-full rounded-full transition-all duration-500"
-						style="width: {proteinProgress}%; background: oklch(0.65 0.14 25)"
+						style="width: {proteinProgress}%; background: oklch(0.65 0.12 250)"
 					></div>
 				</div>
 				<span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
@@ -58,13 +58,13 @@
 				</span>
 			</div>
 			<div class="flex flex-col items-center gap-1">
-				<span class="text-sm font-bold" style="color: oklch(0.65 0.10 250)">
+				<span class="text-sm font-bold" style="color: oklch(0.75 0.14 70)">
 					{totalCarbs}<span class="text-muted-foreground/60 font-medium">/{carbsGoal}g</span>
 				</span>
 				<div class="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
 					<div
 						class="h-full rounded-full transition-all duration-500"
-						style="width: {carbsProgress}%; background: oklch(0.65 0.10 250)"
+						style="width: {carbsProgress}%; background: oklch(0.75 0.14 70)"
 					></div>
 				</div>
 				<span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
@@ -72,13 +72,13 @@
 				</span>
 			</div>
 			<div class="flex flex-col items-center gap-1">
-				<span class="text-sm font-bold" style="color: oklch(0.75 0.12 85)">
+				<span class="text-sm font-bold" style="color: oklch(0.65 0.16 15)">
 					{totalFat}<span class="text-muted-foreground/60 font-medium">/{fatGoal}g</span>
 				</span>
 				<div class="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
 					<div
 						class="h-full rounded-full transition-all duration-500"
-						style="width: {fatProgress}%; background: oklch(0.75 0.12 85)"
+						style="width: {fatProgress}%; background: oklch(0.65 0.16 15)"
 					></div>
 				</div>
 				<span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
