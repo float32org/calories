@@ -51,25 +51,35 @@
 	} satisfies Chart.ChartConfig;
 </script>
 
-<div class="flex flex-col gap-3 rounded-xl bg-muted/30 p-4">
+<div class="flex flex-col gap-4 rounded-xl bg-muted/30 p-5 transition-colors">
 	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-			<UtensilsIcon class="size-4" />
-			Calorie Trend
+		<div class="flex items-center gap-3">
+			<div
+				class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-2/15 transition-colors"
+			>
+				<UtensilsIcon class="size-5 text-chart-2" />
+			</div>
+			<div>
+				<h3 class="text-sm font-medium leading-none text-muted-foreground">Calorie Trend</h3>
+				<p class="mt-1 text-xs font-medium text-muted-foreground/60">Daily intake</p>
+			</div>
 		</div>
+
 		{#if avgCalories !== null}
-			<div class="flex items-center gap-1 rounded-lg bg-muted/50 px-2 py-1 text-xs font-bold">
-				~{avgCalories.toLocaleString()} avg
+			<div
+				class="flex items-center gap-1 rounded-md bg-background/50 px-2 py-1 text-xs font-medium text-muted-foreground tabular-nums"
+			>
+				<span>~{avgCalories.toLocaleString()} avg</span>
 			</div>
 		{/if}
 	</div>
 
 	{#if chartData.length === 0}
-		<div class="flex h-[180px] items-center justify-center">
+		<div class="flex h-[180px] items-center justify-center rounded-lg border border-dashed">
 			<p class="text-sm text-muted-foreground">No meal data yet</p>
 		</div>
 	{:else if chartData.length === 1}
-		<div class="flex h-[180px] items-center justify-center">
+		<div class="flex h-[180px] items-center justify-center rounded-lg border border-dashed">
 			<p class="text-sm text-muted-foreground">Log more meals to see trends</p>
 		</div>
 	{:else}
@@ -80,14 +90,21 @@
 				xScale={scaleBand().padding(0.4)}
 				y="calories"
 				{yDomain}
-				padding={{ left: 40, right: 8, top: 8, bottom: 24 }}
+				padding={{ left: 32, right: 8, top: 8, bottom: 24 }}
 				props={{
 					xAxis: {
-						format: (v: Date) => v.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+						format: (v: Date) => v.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+						tickLabelProps: {
+							class: 'text-[10px] fill-muted-foreground font-medium'
+						}
 					},
 					yAxis: {
 						ticks: 3,
-						format: (v: number) => v.toLocaleString()
+						format: (v: number) => v.toLocaleString(),
+						tickLabelProps: {
+							class: 'text-[10px] fill-muted-foreground font-medium',
+							dx: -4
+						}
 					},
 					bars: {
 						stroke: 'none',
@@ -126,13 +143,13 @@
 		</Chart.Container>
 
 		{#if calorieGoal !== null}
-			<div class="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+			<div class="flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
 				<div class="flex items-center gap-1.5">
-					<div class="h-3 w-3 rounded bg-chart-2"></div>
+					<div class="h-2 w-2 rounded-full bg-chart-2"></div>
 					<span>Calories</span>
 				</div>
 				<div class="flex items-center gap-1.5">
-					<div class="h-0.5 w-4 rounded border-t-2 border-dashed border-emerald-500"></div>
+					<div class="h-0.5 w-3 rounded border-t-2 border-dashed border-emerald-500"></div>
 					<span>Goal ({calorieGoal.toLocaleString()})</span>
 				</div>
 			</div>

@@ -3,6 +3,7 @@
 	import { getProfile } from '$lib/remote/profile.remote';
 	import { getWeightLogs } from '$lib/remote/weight.remote';
 	import { getWeightUnit } from '$lib/utils/calculations';
+	import { cn } from '$lib/utils/ui';
 	import ScaleIcon from '@lucide/svelte/icons/scale';
 	import TrendingDownIcon from '@lucide/svelte/icons/trending-down';
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
@@ -76,35 +77,43 @@
 	} satisfies Chart.ChartConfig;
 </script>
 
-<div class="flex flex-col gap-3 rounded-xl bg-muted/30 p-4">
+<div class="flex flex-col gap-4 rounded-xl bg-muted/30 p-5 transition-colors">
 	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-			<ScaleIcon class="size-4" />
-			Weight Trend
+		<div class="flex items-center gap-3">
+			<div
+				class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-1/15 transition-colors"
+			>
+				<ScaleIcon class="size-5 text-chart-1" />
+			</div>
+			<div>
+				<h3 class="text-sm font-medium leading-none text-muted-foreground">Weight Trend</h3>
+				<p class="mt-1 text-xs font-medium text-muted-foreground/60">Last 30 entries</p>
+			</div>
 		</div>
+
 		{#if weightChange !== null && weightChange !== 0}
 			<div
-				class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold {weightChange < 0
-					? 'bg-emerald-500/10 text-emerald-500'
-					: 'bg-rose-500/10 text-rose-500'}"
+				class={cn(
+					'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium tabular-nums',
+					weightChange < 0 ? 'bg-emerald-500/15 text-emerald-500' : 'bg-rose-500/15 text-rose-500'
+				)}
 			>
 				{#if weightChange < 0}
 					<TrendingDownIcon class="size-3" />
 				{:else}
 					<TrendingUpIcon class="size-3" />
 				{/if}
-				{weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}
-				{weightUnit}
+				<span>{weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)} {weightUnit}</span>
 			</div>
 		{/if}
 	</div>
 
 	{#if chartData.length === 0}
-		<div class="flex h-[180px] items-center justify-center">
+		<div class="flex h-[180px] items-center justify-center rounded-lg border border-dashed">
 			<p class="text-sm text-muted-foreground">No weight data yet</p>
 		</div>
 	{:else if chartData.length === 1}
-		<div class="flex h-[180px] items-center justify-center">
+		<div class="flex h-[180px] items-center justify-center rounded-lg border border-dashed">
 			<p class="text-sm text-muted-foreground">Log more weight to see trends</p>
 		</div>
 	{:else}
@@ -130,11 +139,18 @@
 					},
 					xAxis: {
 						ticks: xTicks,
-						format: (v: Date) => v.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+						format: (v: Date) => v.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+						tickLabelProps: {
+							class: 'text-[10px] fill-muted-foreground font-medium'
+						}
 					},
 					yAxis: {
 						ticks: 3,
-						format: (v: number) => `${v}`
+						format: (v: number) => `${v}`,
+						tickLabelProps: {
+							class: 'text-[10px] fill-muted-foreground font-medium',
+							dx: -4
+						}
 					}
 				}}
 			>
@@ -167,13 +183,13 @@
 		</Chart.Container>
 
 		{#if weightGoal !== null}
-			<div class="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+			<div class="flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
 				<div class="flex items-center gap-1.5">
-					<div class="h-0.5 w-4 rounded bg-chart-1"></div>
+					<div class="h-2 w-2 rounded-full bg-chart-1"></div>
 					<span>Weight</span>
 				</div>
 				<div class="flex items-center gap-1.5">
-					<div class="h-0.5 w-4 rounded border-t-2 border-dashed border-emerald-500"></div>
+					<div class="h-0.5 w-3 rounded border-t-2 border-dashed border-emerald-500"></div>
 					<span>Goal ({weightGoal} {weightUnit})</span>
 				</div>
 			</div>

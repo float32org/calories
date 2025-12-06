@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { getMeals } from '$lib/remote/meals.remote';
 	import { formatDate } from '$lib/utils/format';
+	import { cn } from '$lib/utils/ui';
 	import FlameIcon from '@lucide/svelte/icons/flame';
+	import TrophyIcon from '@lucide/svelte/icons/trophy';
 	import { SvelteDate } from 'svelte/reactivity';
 
 	const initialMeals = await getMeals();
@@ -65,37 +67,69 @@
 	});
 
 	const isOnFire = $derived(currentStreak >= 3);
+
+	const history = $derived.by(() => {
+		const days = [];
+		const now = new SvelteDate();
+		const today = new SvelteDate(now.getFullYear(), now.getMonth(), now.getDate());
+
+		for (let i = 6; i >= 0; i--) {
+			const d = new SvelteDate(today.getTime() - i * 24 * 60 * 60 * 1000);
+			const dateStr = formatDate(d);
+			days.push({
+				day: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
+				isLogged: loggedDates.has(dateStr)
+			});
+		}
+		return days;
+	});
 </script>
 
-<div class="flex items-center gap-3 rounded-xl bg-muted/30 p-4">
-	<div
-		class="flex size-12 shrink-0 items-center justify-center rounded-xl {isOnFire
-			? 'bg-orange-500/10'
-			: 'bg-muted/50'}"
-	>
-		<FlameIcon class="size-6 {isOnFire ? 'text-orange-500' : 'text-muted-foreground'}" />
-	</div>
-	<div class="min-w-0 flex-1">
-		<div class="flex items-baseline gap-1">
-			<span class="text-2xl font-bold tabular-nums">{currentStreak}</span>
-			<span class="text-sm text-muted-foreground">day{currentStreak !== 1 ? 's' : ''}</span>
+<div class="flex flex-col gap-4 rounded-xl bg-muted/30 p-5 transition-colors">
+	<div class="flex items-start justify-between">
+		<div class="flex items-center gap-3">
+			<div
+				class={cn(
+					'flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors',
+					isOnFire ? 'bg-orange-500/15' : 'bg-muted'
+				)}
+			>
+				<FlameIcon class={cn('size-5', isOnFire ? 'text-orange-500' : 'text-muted-foreground')} />
+			</div>
+			<div>
+				<h3 class="text-sm font-medium leading-none text-muted-foreground">Streak</h3>
+				<div class="mt-1 flex items-baseline gap-2">
+					<span class="text-2xl font-bold tabular-nums tracking-tight">{currentStreak}</span>
+					<span class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+						Day{currentStreak !== 1 ? 's' : ''}
+					</span>
+				</div>
+			</div>
 		</div>
-		<span class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-			{#if currentStreak === 0}
-				Log a meal to start your streak
-			{:else if isOnFire}
-				You're on fire! Keep it up
-			{:else}
-				Current streak
-			{/if}
-		</span>
+
+		{#if longestStreak > 0}
+			<div
+				class="flex items-center gap-1.5 rounded-md bg-background/50 px-2 py-1 text-[10px] font-medium text-muted-foreground"
+			>
+				<TrophyIcon class="size-3" />
+				<span>Best: {longestStreak}</span>
+			</div>
+		{/if}
 	</div>
-	{#if longestStreak > currentStreak}
-		<div class="text-right">
-			<div class="text-sm font-bold tabular-nums text-muted-foreground">{longestStreak}</div>
-			<span class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-				Best
-			</span>
-		</div>
-	{/if}
+
+	<div class="flex w-full justify-between px-1">
+		{#each history as day}
+			<div class="flex flex-col items-center gap-2">
+				<div
+					class={cn(
+						'h-8 w-2 rounded-full transition-colors',
+						day.isLogged ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.25)]' : 'bg-muted/50'
+					)}
+				></div>
+				<span class="text-[9px] font-medium uppercase text-muted-foreground/60">
+					{day.day}
+				</span>
+			</div>
+		{/each}
+	</div>
 </div>
