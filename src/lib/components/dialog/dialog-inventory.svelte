@@ -611,7 +611,7 @@
 
 		saving = true;
 		try {
-			const result = await markItemsBoughtAndAddToPantry({
+			await markItemsBoughtAndAddToPantry({
 				itemIds: checkedItems.map((i) => i.id),
 				addToPantry: true
 			}).updates(getShoppingLists(), getPantryItems());

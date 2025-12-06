@@ -1,7 +1,7 @@
 import type { Message } from '$lib/messages';
 import { db } from '$lib/server/db';
-import { gateway } from '$lib/server/gateway';
 import { logger } from '$lib/server/logger';
+import { openrouter } from '$lib/server/openrouter';
 import {
 	buildSystemPrompt,
 	type AssistantContext,
@@ -105,9 +105,9 @@ export const POST: RequestHandler = async (event) => {
 			stream: createUIMessageStream<Message>({
 				execute: async ({ writer }) => {
 					const result = streamText({
-						model: gateway('google/gemini-3-pro-preview'),
+						model: openrouter.chat('google/gemini-3-pro-preview'),
 						providerOptions: {
-							google: { thinkingConfig: { thinkingLevel: 'high' } }
+							openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
 						},
 						system: systemPrompt,
 						messages: convertToModelMessages(messages),

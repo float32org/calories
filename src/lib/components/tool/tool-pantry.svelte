@@ -35,20 +35,7 @@
 		error?: string;
 	};
 
-	type PantryInput = {
-		operation: 'query' | 'add' | 'update' | 'delete';
-		name?: string;
-		quantity?: number;
-		unit?: string;
-	};
-
-	let {
-		input,
-		output
-	}: {
-		input?: PantryInput;
-		output: PantryOutput;
-	} = $props();
+	let { output }: { output: PantryOutput } = $props();
 
 	const allItems = $derived(
 		output.byCategory

@@ -1,6 +1,6 @@
 # Calories
 
-A simple, AI-powered nutrition tracking app.
+A simple nutrition tracking app with a helpful assistant.
 
 ## Features
 
@@ -23,7 +23,7 @@ A simple, AI-powered nutrition tracking app.
 
 - Bun
 - A PostgreSQL database
-- AI Gateway API key
+- OpenRouter API key
 
 ### Installation
 

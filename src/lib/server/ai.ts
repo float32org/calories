@@ -1,6 +1,6 @@
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
-import { gateway } from './gateway';
+import { openrouter } from './openrouter';
 
 const mealAnalysisSchema = z.object({
 	isFood: z
@@ -152,9 +152,9 @@ export async function analyzeMealFromImage(
 	mimeType: string
 ): Promise<MealAnalysis> {
 	const { output } = await generateText({
-		model: gateway('google/gemini-3-pro-preview'),
+		model: openrouter.chat('google/gemini-3-pro-preview'),
 		providerOptions: {
-			google: { thinkingConfig: { thinkingLevel: 'high' } }
+			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
 		},
 		output: Output.object({ schema: mealAnalysisSchema }),
 		messages: [
@@ -247,9 +247,9 @@ WHEN UNCERTAIN: Estimate on the higher end. Users typically underreport.
 
 export async function analyzeMealFromText(description: string): Promise<MealAnalysis> {
 	const { output } = await generateText({
-		model: gateway('google/gemini-3-pro-preview'),
+		model: openrouter.chat('google/gemini-3-pro-preview'),
 		providerOptions: {
-			google: { thinkingConfig: { thinkingLevel: 'high' } }
+			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
 		},
 		output: Output.object({ schema: mealAnalysisSchema }),
 		messages: [
@@ -385,9 +385,9 @@ export async function analyzePantryImage(
 	mimeType: string
 ): Promise<PantryImageAnalysis> {
 	const { output } = await generateText({
-		model: gateway('google/gemini-3-pro-preview'),
+		model: openrouter.chat('google/gemini-3-pro-preview'),
 		providerOptions: {
-			google: { thinkingConfig: { thinkingLevel: 'high' } }
+			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
 		},
 		output: Output.object({ schema: pantryImageAnalysisSchema }),
 		messages: [
@@ -507,9 +507,9 @@ export async function analyzeShoppingList(
 				];
 
 	const { output } = await generateText({
-		model: gateway('google/gemini-3-pro-preview'),
+		model: openrouter.chat('google/gemini-3-pro-preview'),
 		providerOptions: {
-			google: { thinkingConfig: { thinkingLevel: 'high' } }
+			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
 		},
 		output: Output.object({ schema: shoppingListAnalysisSchema }),
 		messages: [
