@@ -973,7 +973,6 @@
 								</SelectContent>
 							</Select>
 						</div>
-					{/if}
 					<Button
 						variant="outline"
 						size="icon"
@@ -1000,6 +999,12 @@
 							<DownloadIcon class="size-4" />
 						</Button>
 					{/if}
+				{:else}
+					<Button variant="outline" class="flex-1" onclick={() => (shoppingView = 'add-list')}>
+						<PlusIcon class="size-4 mr-2" />
+						Create List
+					</Button>
+				{/if}
 				</div>
 
 				{#if !selectedList}
@@ -1009,10 +1014,6 @@
 						</div>
 						<p class="font-medium text-foreground">No shopping lists yet</p>
 						<p class="text-sm text-muted-foreground mt-1">Create a list to start adding items</p>
-						<Button variant="outline" class="mt-4" onclick={() => (shoppingView = 'add-list')}>
-							<PlusIcon class="size-4 mr-2" />
-							Create List
-						</Button>
 					</div>
 				{:else}
 					<div class="flex gap-2">
