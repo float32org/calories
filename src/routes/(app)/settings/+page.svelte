@@ -170,7 +170,7 @@
 							<CreditCardIcon class="size-4" />
 							Subscription
 						</h2>
-						<div class="flex flex-col gap-3 rounded-3xl bg-card/50 p-5 transition-all">
+						<div class="flex flex-col gap-3 rounded-3xl bg-card/50 p-4 transition-all">
 							<div class="flex items-center justify-between">
 								<div>
 									<h3 class="font-bold">Calories Pro</h3>

@@ -64,7 +64,7 @@
 							<CheckCircleIcon class="size-8 text-green-500" />
 						</div>
 						<div class="space-y-1 text-center">
-							<h2 class="text-lg font-bold">Welcome to Calories!</h2>
+							<h2 class="text-lg font-bold">Welcome to Calories Pro!</h2>
 							<p class="text-sm text-muted-foreground">Your 7-day free trial has started. Enjoy!</p>
 						</div>
 					</div>

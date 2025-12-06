@@ -53,9 +53,9 @@
 				try {
 					const date = new Date(profile.birthDate);
 					birthDateValue = new CalendarDate(
-						date.getFullYear(),
-						date.getMonth() + 1,
-						date.getDate()
+						date.getUTCFullYear(),
+						date.getUTCMonth() + 1,
+						date.getUTCDate()
 					);
 				} catch {
 					birthDateValue = undefined;
