@@ -44,13 +44,13 @@
 
 		<div class="mt-2 flex items-center gap-6">
 			<div class="flex flex-col items-center gap-1">
-				<span class="text-sm font-bold text-blue-500 dark:text-blue-400">
+				<span class="text-sm font-bold" style="color: oklch(0.65 0.14 25)">
 					{totalProtein}<span class="text-muted-foreground/60 font-medium">/{proteinGoal}g</span>
 				</span>
 				<div class="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
 					<div
-						class="h-full rounded-full bg-blue-500 transition-all duration-500 dark:bg-blue-400"
-						style="width: {proteinProgress}%"
+						class="h-full rounded-full transition-all duration-500"
+						style="width: {proteinProgress}%; background: oklch(0.65 0.14 25)"
 					></div>
 				</div>
 				<span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
@@ -58,13 +58,13 @@
 				</span>
 			</div>
 			<div class="flex flex-col items-center gap-1">
-				<span class="text-sm font-bold text-amber-500 dark:text-amber-400">
+				<span class="text-sm font-bold" style="color: oklch(0.65 0.10 250)">
 					{totalCarbs}<span class="text-muted-foreground/60 font-medium">/{carbsGoal}g</span>
 				</span>
 				<div class="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
 					<div
-						class="h-full rounded-full bg-amber-500 transition-all duration-500 dark:bg-amber-400"
-						style="width: {carbsProgress}%"
+						class="h-full rounded-full transition-all duration-500"
+						style="width: {carbsProgress}%; background: oklch(0.65 0.10 250)"
 					></div>
 				</div>
 				<span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
@@ -72,13 +72,13 @@
 				</span>
 			</div>
 			<div class="flex flex-col items-center gap-1">
-				<span class="text-sm font-bold text-rose-500 dark:text-rose-400">
+				<span class="text-sm font-bold" style="color: oklch(0.75 0.12 85)">
 					{totalFat}<span class="text-muted-foreground/60 font-medium">/{fatGoal}g</span>
 				</span>
 				<div class="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
 					<div
-						class="h-full rounded-full bg-rose-500 transition-all duration-500 dark:bg-rose-400"
-						style="width: {fatProgress}%"
+						class="h-full rounded-full transition-all duration-500"
+						style="width: {fatProgress}%; background: oklch(0.75 0.12 85)"
 					></div>
 				</div>
 				<span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">

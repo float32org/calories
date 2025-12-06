@@ -79,17 +79,20 @@
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-1">
 					<span
-						class="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-500 dark:bg-blue-400/10 dark:text-blue-400"
+						class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+						style="background: oklch(0.65 0.14 25 / 0.15); color: oklch(0.65 0.14 25)"
 					>
 						{meal.protein ?? 0}g P
 					</span>
 					<span
-						class="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500 dark:bg-amber-400/10 dark:text-amber-400"
+						class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+						style="background: oklch(0.65 0.10 250 / 0.15); color: oklch(0.65 0.10 250)"
 					>
 						{meal.carbs ?? 0}g C
 					</span>
 					<span
-						class="rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-500 dark:bg-rose-400/10 dark:text-rose-400"
+						class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+						style="background: oklch(0.75 0.12 85 / 0.15); color: oklch(0.75 0.12 85)"
 					>
 						{meal.fat ?? 0}g F
 					</span>
