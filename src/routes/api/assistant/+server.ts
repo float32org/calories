@@ -1,6 +1,7 @@
 import type { Message } from '$lib/messages';
 import { db } from '$lib/server/db';
 import { gateway } from '$lib/server/gateway';
+import { logger } from '$lib/server/logger';
 import {
 	buildSystemPrompt,
 	type AssistantContext,
@@ -117,12 +118,23 @@ export const POST: RequestHandler = async (event) => {
 					});
 
 					result.consumeStream();
+
 					writer.merge(result.toUIMessageStream());
 				},
-				onError: () => 'An unexpected error occurred. Please try again.'
+				onError: (err) => {
+					logger.error('assistant_stream_error', {
+						userId,
+						error: err instanceof Error ? err.message : String(err)
+					});
+					return 'An unexpected error occurred. Please try again.';
+				}
 			})
 		});
-	} catch {
+	} catch (err) {
+		logger.error('assistant_request_failed', {
+			userId,
+			error: err instanceof Error ? err.message : String(err)
+		});
 		return json({ error: 'Failed to process request' }, { status: 500 });
 	}
 };

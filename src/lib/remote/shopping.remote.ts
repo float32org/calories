@@ -3,6 +3,7 @@ import { PANTRY_CATEGORY_LABELS, PANTRY_CATEGORY_ORDER } from '$lib/constants';
 import { MIME_TO_EXT } from '$lib/constants/mime';
 import { analyzeShoppingList } from '$lib/server/ai';
 import { db } from '$lib/server/db';
+import { logger } from '$lib/server/logger';
 import { aiLimiter } from '$lib/server/ratelimit';
 import {
 	pantryCategoryValues,
@@ -592,7 +593,11 @@ export const scanShoppingList = command(
 
 				return { items: analysis.items };
 			} catch (err) {
-				console.error('Shopping list image analysis failed:', err);
+				logger.error('shopping_list_image_analysis_failed', {
+					userId: event.locals.user.id,
+					imageKey: input.imageKey,
+					error: err instanceof Error ? err.message : String(err)
+				});
 				return error(500, 'Failed to analyze image. Please try again.');
 			}
 		} else {
@@ -630,7 +635,10 @@ export const scanShoppingList = command(
 						: undefined
 				};
 			} catch (err) {
-				console.error('Shopping list text analysis failed:', err);
+				logger.error('shopping_list_text_analysis_failed', {
+					userId: event.locals.user.id,
+					error: err instanceof Error ? err.message : String(err)
+				});
 				return error(500, 'Failed to analyze text. Please try again.');
 			}
 		}

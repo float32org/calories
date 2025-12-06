@@ -2,6 +2,7 @@ import { command, getRequestEvent, query } from '$app/server';
 import { MIME_TO_EXT } from '$lib/constants/mime';
 import { analyzeMealFromImage, analyzeMealFromText } from '$lib/server/ai';
 import { db } from '$lib/server/db';
+import { logger } from '$lib/server/logger';
 import { aiLimiter } from '$lib/server/ratelimit';
 import { mealLogs } from '$lib/server/schema';
 import {
@@ -121,7 +122,11 @@ export const analyzeMealImage = command(
 				servingUnit: analysis.servingUnit
 			};
 		} catch (err) {
-			console.error('Meal analysis failed:', err);
+			logger.error('meal_image_analysis_failed', {
+				userId: event.locals.user.id,
+				imageKey: input.imageKey,
+				error: err instanceof Error ? err.message : String(err)
+			});
 			return error(500, 'Failed to analyze meal. Please try again.');
 		}
 	}
@@ -145,7 +150,11 @@ export const deleteUploadedImage = command(
 			await deleteImage(input.imageKey);
 			return { success: true };
 		} catch (err) {
-			console.error('Failed to delete uploaded image:', err);
+			logger.warn('image_delete_failed', {
+				userId: locals.user.id,
+				imageKey: input.imageKey,
+				error: err instanceof Error ? err.message : String(err)
+			});
 			return error(500, 'Failed to delete image');
 		}
 	}
@@ -183,7 +192,10 @@ export const analyzeMealText = command(
 				isNutritionLabel: false
 			};
 		} catch (err) {
-			console.error('Meal text analysis failed:', err);
+			logger.error('meal_text_analysis_failed', {
+				userId: event.locals.user.id,
+				error: err instanceof Error ? err.message : String(err)
+			});
 			return error(500, 'Failed to analyze meal description. Please try again.');
 		}
 	}

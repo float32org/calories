@@ -2,6 +2,7 @@ import { command, getRequestEvent, query } from '$app/server';
 import { MIME_TO_EXT } from '$lib/constants/mime';
 import { analyzePantryImage } from '$lib/server/ai';
 import { db } from '$lib/server/db';
+import { logger } from '$lib/server/logger';
 import { aiLimiter } from '$lib/server/ratelimit';
 import { pantryCategoryValues, pantryItems } from '$lib/server/schema';
 import {
@@ -76,7 +77,11 @@ export const scanPantryImage = command(
 				items: analysis.items
 			};
 		} catch (err) {
-			console.error('Pantry image analysis failed:', err);
+			logger.error('pantry_image_analysis_failed', {
+				userId: event.locals.user.id,
+				imageKey: input.imageKey,
+				error: err instanceof Error ? err.message : String(err)
+			});
 			return error(500, 'Failed to analyze image. Please try again.');
 		}
 	}
