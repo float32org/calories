@@ -1,17 +1,12 @@
 <script lang="ts">
 	import { Markdown } from '$lib/components/markdown';
 	import {
-		ToolDeleteMeal,
-		ToolEditMeal,
-		ToolLogWater,
-		ToolLogWeight,
-		ToolManagePantry,
-		ToolManagePreference,
-		ToolQueryMeals,
-		ToolQueryPantry,
+		ToolMeals,
+		ToolPantry,
+		ToolPreferences,
+		ToolShoppingList,
 		ToolSuggestFood,
-		ToolUpdateGoals,
-		ToolWeightProgress
+		ToolTracking
 	} from '$lib/components/tool';
 	import {
 		InputGroup,
@@ -29,6 +24,7 @@
 	} from '$lib/remote/meals.remote';
 	import { getPantryItems } from '$lib/remote/pantry.remote';
 	import { getProfile } from '$lib/remote/profile.remote';
+	import { getShoppingLists } from '$lib/remote/shopping.remote';
 	import { getWaterForDate } from '$lib/remote/water.remote';
 	import { getLatestWeight } from '$lib/remote/weight.remote';
 	import type { MealInput } from '$lib/types';
@@ -97,16 +93,17 @@
 		generateId: () => crypto.randomUUID(),
 		onToolCall: async ({ toolCall }) => {
 			const { toolName } = toolCall;
-			if (['suggestFood', 'deleteMeal', 'editMeal'].includes(toolName)) {
+			if (['suggestFood', 'meals'].includes(toolName)) {
 				await getMeals().refresh();
-			} else if (toolName === 'managePantryItem') {
+			} else if (toolName === 'pantry') {
 				await getPantryItems().refresh();
-			} else if (toolName === 'updateGoals') {
+			} else if (toolName === 'preferences') {
 				await getProfile().refresh();
-			} else if (toolName === 'logWeight') {
+			} else if (toolName === 'tracking') {
 				await getLatestWeight().refresh();
-			} else if (toolName === 'logWater') {
 				await getWaterForDate(date).refresh();
+			} else if (toolName === 'shoppingList') {
+				await getShoppingLists().refresh();
 			}
 		},
 		onError: () => toast.error('Something went wrong. Please try again.')
@@ -118,16 +115,11 @@
 
 	const toolTypes = new Set([
 		'tool-suggestFood',
-		'tool-managePreference',
-		'tool-queryMealHistory',
-		'tool-queryWeightHistory',
-		'tool-updateGoals',
-		'tool-logWeight',
-		'tool-logWater',
-		'tool-deleteMeal',
-		'tool-editMeal',
-		'tool-queryPantry',
-		'tool-managePantryItem'
+		'tool-meals',
+		'tool-tracking',
+		'tool-preferences',
+		'tool-pantry',
+		'tool-shoppingList'
 	]);
 
 	const quickActions = [
@@ -287,9 +279,9 @@
 			style="scrollbar-width: thin;"
 		>
 			{#if chat.messages.length === 0 && !isStreaming}
-				<div class="flex flex-col h-full">
+				<div class="flex h-full flex-col">
 					<div class="py-4 text-center">
-						<p class="font-medium mb-1">What would you like help with?</p>
+						<p class="mb-1 font-medium">What would you like help with?</p>
 						<p class="text-sm text-muted-foreground">
 							Upload a photo or ask me anything about food
 						</p>
@@ -301,7 +293,7 @@
 								class="flex w-full items-center gap-3 rounded-xl border bg-card p-3 text-left transition-all hover:border-primary/30 hover:bg-muted/50"
 								onclick={() => handleQuickAction(action)}
 							>
-								<div class="rounded-lg p-2 bg-muted">
+								<div class="rounded-lg bg-muted p-2">
 									<action.icon class="size-4 text-muted-foreground" />
 								</div>
 								<span class="text-sm font-medium">{action.label}</span>
@@ -317,8 +309,8 @@
 						<div class="max-w-[85%] space-y-2">
 							{#each message.parts?.filter((p) => p.type === 'file') ?? [] as filePart, i (i)}
 								<div class="flex justify-end">
-									<div class="w-32 h-32 rounded-xl overflow-hidden border">
-										<img src={filePart.url} alt="Uploaded" class="w-full h-full object-cover" />
+									<div class="h-32 w-32 overflow-hidden rounded-xl border">
+										<img src={filePart.url} alt="Uploaded" class="h-full w-full object-cover" />
 									</div>
 								</div>
 							{/each}
@@ -347,35 +339,19 @@
 										{...part.input}
 										onLog={() => handleLogMeal(part.input as MealInput)}
 									/>
-								{:else if part.type === 'tool-managePreference' && (part.state === 'input-available' || part.state === 'output-available')}
-									<ToolManagePreference
+								{:else if part.type === 'tool-meals' && part.state === 'output-available'}
+									<ToolMeals output={part.output} />
+								{:else if part.type === 'tool-tracking' && part.state === 'output-available'}
+									<ToolTracking output={part.output} />
+								{:else if part.type === 'tool-preferences' && (part.state === 'input-available' || part.state === 'output-available')}
+									<ToolPreferences
 										input={part.input}
 										output={part.state === 'output-available' ? part.output : undefined}
 									/>
-								{:else if part.type === 'tool-queryMealHistory' && part.state === 'output-available'}
-									<ToolQueryMeals output={part.output} />
-								{:else if part.type === 'tool-queryWeightHistory' && part.state === 'output-available'}
-									<ToolWeightProgress output={part.output} />
-								{:else if part.type === 'tool-updateGoals' && (part.state === 'input-available' || part.state === 'output-available')}
-									<ToolUpdateGoals
-										input={part.input}
-										output={part.state === 'output-available' ? part.output : undefined}
-									/>
-								{:else if part.type === 'tool-logWeight' && part.state === 'output-available'}
-									<ToolLogWeight output={part.output} />
-								{:else if part.type === 'tool-logWater' && part.state === 'output-available'}
-									<ToolLogWater output={part.output} />
-								{:else if part.type === 'tool-deleteMeal' && part.state === 'output-available'}
-									<ToolDeleteMeal output={part.output} />
-								{:else if part.type === 'tool-editMeal' && part.state === 'output-available'}
-									<ToolEditMeal output={part.output} />
-								{:else if part.type === 'tool-queryPantry' && part.state === 'output-available'}
-									<ToolQueryPantry output={part.output} />
-								{:else if part.type === 'tool-managePantryItem' && (part.state === 'input-available' || part.state === 'output-available')}
-									<ToolManagePantry
-										input={part.input}
-										output={part.state === 'output-available' ? part.output : undefined}
-									/>
+								{:else if part.type === 'tool-pantry' && part.state === 'output-available'}
+									<ToolPantry output={part.output} />
+								{:else if part.type === 'tool-shoppingList' && part.state === 'output-available'}
+									<ToolShoppingList output={part.output} />
 								{/if}
 							{/each}
 						{:else}
