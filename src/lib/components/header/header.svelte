@@ -3,7 +3,7 @@
 	import {
 		FoodAssistantDialog,
 		GoalsDialog,
-		InventoryDialog,
+		KitchenDialog,
 		ProfileDialog
 	} from '$lib/components/dialog';
 	import { Badge } from '$lib/components/ui/badge';
@@ -28,7 +28,7 @@
 	let goalsOpen = $state(false);
 	let profileOpen = $state(false);
 	let assistantOpen = $state(false);
-	let inventoryOpen = $state(false);
+	let kitchenOpen = $state(false);
 
 	const trialDaysLeft = $derived.by(() => {
 		if (!trialEnd) return null;
@@ -69,12 +69,7 @@
 					>
 						<ChefHatIcon class="size-4 text-muted-foreground" />
 					</Button>
-					<Button
-						variant="outline"
-						size="icon"
-						class="size-8"
-						onclick={() => (inventoryOpen = true)}
-					>
+					<Button variant="outline" size="icon" class="size-8" onclick={() => (kitchenOpen = true)}>
 						<CookingPotIcon class="size-4 text-muted-foreground" />
 					</Button>
 					<Button variant="outline" size="icon" class="size-8" href={resolve('/progress')}>
@@ -100,6 +95,6 @@
 {#if assistantOpen && selectedDate}
 	<FoodAssistantDialog bind:open={assistantOpen} date={selectedDate} />
 {/if}
-{#if inventoryOpen}
-	<InventoryDialog bind:open={inventoryOpen} />
+{#if kitchenOpen}
+	<KitchenDialog bind:open={kitchenOpen} />
 {/if}

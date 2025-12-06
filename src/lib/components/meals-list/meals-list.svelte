@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AddMealDialog, EditMealDialog } from '$lib/components/dialog';
+	import { LogMealDialog, EditMealDialog } from '$lib/components/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { addMeal, deleteMeal, getMeals, updateMeal } from '$lib/remote/meals.remote';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -151,5 +151,5 @@
 	</div>
 </div>
 
-<AddMealDialog bind:open={isAddModalOpen} onAdd={handleAddMeal} />
+<LogMealDialog bind:open={isAddModalOpen} onAdd={handleAddMeal} />
 <EditMealDialog bind:open={isEditModalOpen} meal={editingMeal} onSave={handleUpdateMeal} />
