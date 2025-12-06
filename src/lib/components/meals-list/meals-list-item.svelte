@@ -5,6 +5,7 @@
 		DropdownMenuItem,
 		DropdownMenuTrigger
 	} from '$lib/components/ui/dropdown-menu';
+	import { generateChartColor } from '$lib/utils/colors';
 	import { formatTime } from '$lib/utils/format';
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
@@ -42,7 +43,7 @@
 	<div class="flex items-stretch">
 		<div
 			class="w-1 shrink-0 rounded-l-2xl"
-			style="background-color: var(--chart-{(index % 5) + 1})"
+			style="background-color: {generateChartColor(index)}"
 		></div>
 		<div class="flex min-w-0 flex-1 flex-col justify-center p-2 pl-3">
 			<div class="flex items-start justify-between gap-2">

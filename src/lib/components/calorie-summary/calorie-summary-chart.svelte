@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { generateChartColor } from '$lib/utils/colors';
 	import { fade } from 'svelte/transition';
 
 	type Meal = {
@@ -26,9 +27,11 @@
 	let segments = $derived.by(() => {
 		let currentAngle = 0;
 		const gapSize = meals.length > 1 ? 2 : 0;
+		const total = meals.reduce((acc, m) => acc + m.calories, 0);
+		const base = Math.max(goal, total);
 
 		return meals.map((meal, i) => {
-			const percentage = Math.min(meal.calories / goal, 1);
+			const percentage = meal.calories / base;
 			const angleSize = percentage * 360;
 
 			const start = currentAngle;
@@ -41,13 +44,17 @@
 				start,
 				end,
 				largeArc: angleSize > 180 ? 1 : 0,
-				color: `var(--chart-${(i % 5) + 1})`
+				color: generateChartColor(i)
 			};
 		});
 	});
 
 	let totalCalories = $derived(meals.reduce((acc, m) => acc + m.calories, 0));
 	let remaining = $derived(Math.max(0, goal - totalCalories));
+	let isOver = $derived(totalCalories > goal);
+	let overAmount = $derived(totalCalories - goal);
+	let goalAngle = $derived(isOver ? (goal / totalCalories) * 360 : 360);
+	let overflowAngle = $derived(isOver ? 360 - goalAngle : 0);
 
 	function describeArc(startAngle: number, endAngle: number) {
 		const start = polarToCartesian(CENTER, CENTER, RADIUS, endAngle);
@@ -86,10 +93,11 @@
 			stroke="var(--muted)"
 			stroke-width={thickness}
 			stroke-linecap="round"
+			class="transition-all duration-500"
 		/>
 		{#each segments as segment (segment.id)}
 			<path
-				d={describeArc(segment.start, segment.end)}
+				d={describeArc(segment.start, Math.min(segment.end, goalAngle))}
 				fill="none"
 				stroke={segment.color}
 				stroke-width={thickness}
@@ -98,10 +106,26 @@
 				in:fade={{ duration: 500 }}
 			/>
 		{/each}
+		{#if isOver && overflowAngle > 0}
+			<path
+				d={describeArc(goalAngle, 360)}
+				fill="none"
+				stroke="rgb(244 63 94)"
+				stroke-width={thickness}
+				stroke-linecap="round"
+				class="transition-all duration-500"
+			/>
+		{/if}
 	</svg>
 	<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-		<span class="text-sm font-medium text-muted-foreground">Remaining</span>
-		<span class="text-4xl font-bold tracking-tighter text-foreground">{remaining}</span>
-		<span class="text-xs font-medium text-muted-foreground mt-1">kcal</span>
+		{#if isOver}
+			<span class="text-sm font-medium text-rose-500/70">Over</span>
+			<span class="text-4xl font-bold tracking-tighter text-rose-500">{overAmount}</span>
+			<span class="text-xs font-medium text-muted-foreground mt-1">kcal</span>
+		{:else}
+			<span class="text-sm font-medium text-muted-foreground">Remaining</span>
+			<span class="text-4xl font-bold tracking-tighter text-foreground">{remaining}</span>
+			<span class="text-xs font-medium text-muted-foreground mt-1">kcal</span>
+		{/if}
 	</div>
 </div>
