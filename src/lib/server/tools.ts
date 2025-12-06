@@ -1199,11 +1199,55 @@ For add_items, provide an array of items with name, optional category, quantity,
 	}
 });
 
+export const createRecipe = tool({
+	description: `Create a recipe for the user to save to their cookbook.
+
+USE THIS TOOL WHEN:
+- User asks for a recipe idea or how to make something
+- User wants to use up pantry ingredients ("what can I make with...")
+- User asks for meal suggestions they can cook
+- You want to suggest a complete recipe based on their preferences
+
+The recipe will be displayed as a card with options to save, download, or log as a meal. Include accurate macro estimates per serving. Consider the user's dietary preferences, pantry items, and calorie goals when creating recipes.`,
+	inputSchema: z.object({
+		name: z.string().max(200).describe('Recipe name (e.g., "Honey Garlic Chicken")'),
+		description: z
+			.string()
+			.max(500)
+			.optional()
+			.describe('Brief description of the dish (1-2 sentences)'),
+		servings: z.number().int().min(1).max(20).describe('Number of servings'),
+		prepTime: z.number().int().min(0).max(480).optional().describe('Prep time in minutes'),
+		cookTime: z.number().int().min(0).max(480).optional().describe('Cook time in minutes'),
+		ingredients: z
+			.array(
+				z.object({
+					item: z.string().describe('Ingredient name'),
+					amount: z.string().describe('Amount with unit (e.g., "2 cups", "1 lb")'),
+					notes: z
+						.string()
+						.optional()
+						.describe('Optional notes (e.g., "diced", "room temperature")')
+				})
+			)
+			.min(1)
+			.max(30)
+			.describe('List of ingredients'),
+		instructions: z.array(z.string()).min(1).max(20).describe('Step-by-step cooking instructions'),
+		calories: z.number().int().min(0).max(5000).describe('Calories per serving'),
+		protein: z.number().int().min(0).max(500).describe('Protein per serving (g)'),
+		carbs: z.number().int().min(0).max(500).describe('Carbs per serving (g)'),
+		fat: z.number().int().min(0).max(500).describe('Fat per serving (g)'),
+		tips: z.string().max(500).optional().describe('Optional cooking tips or variations')
+	})
+});
+
 export const assistantTools = {
 	suggestFood,
 	meals,
 	tracking,
 	preferences,
 	pantry,
-	shoppingList
+	shoppingList,
+	createRecipe
 };

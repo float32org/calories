@@ -534,3 +534,143 @@ export async function analyzeShoppingList(
 
 	return output;
 }
+
+const recipeIngredientSchema = z.object({
+	item: z.string().describe('Ingredient name'),
+	amount: z.string().describe('Amount with unit (e.g., "2 cups", "1 lb", "3 cloves")'),
+	notes: z.string().optional().describe('Optional notes (e.g., "diced", "room temperature")')
+});
+
+const recipeAnalysisSchema = z.object({
+	isValid: z.boolean().describe('Whether the image contains a valid recipe'),
+	rejectionReason: z
+		.string()
+		.optional()
+		.describe('If invalid, explain why (e.g., "This is not a recipe", "Text is unreadable")'),
+	name: z.string().describe('Recipe name/title'),
+	description: z.string().optional().describe('Brief description of the dish'),
+	servings: z.number().int().min(1).describe('Number of servings'),
+	prepTime: z.number().int().optional().describe('Prep time in minutes'),
+	cookTime: z.number().int().optional().describe('Cook time in minutes'),
+	ingredients: z.array(recipeIngredientSchema).describe('List of ingredients'),
+	instructions: z.array(z.string()).describe('Step-by-step instructions'),
+	calories: z.number().int().describe('Estimated calories per serving'),
+	protein: z.number().int().describe('Estimated protein per serving (g)'),
+	carbs: z.number().int().describe('Estimated carbs per serving (g)'),
+	fat: z.number().int().describe('Estimated fat per serving (g)'),
+	tips: z.string().optional().describe('Any tips or notes from the recipe')
+});
+
+export type RecipeAnalysis = z.infer<typeof recipeAnalysisSchema>;
+export type RecipeIngredient = z.infer<typeof recipeIngredientSchema>;
+
+const RECIPE_SCAN_PROMPT = `<role>
+You are an expert at extracting recipes from various sources - cookbook photos, recipe cards, website screenshots, handwritten recipes, and food packaging.
+</role>
+
+<task>
+Extract complete recipe information from images. Handle various formats:
+1. COOKBOOK PAGES - Photographed recipe pages
+2. RECIPE CARDS - Handwritten or printed recipe cards
+3. SCREENSHOTS - Screenshots from recipe websites or apps
+4. PACKAGING - Recipe instructions on food packaging
+5. HANDWRITTEN - Personal handwritten recipes
+</task>
+
+<validation>
+FIRST, determine if the image contains a recipe:
+- VALID: Contains a recipe with ingredients and/or instructions
+- INVALID: Not a recipe (random food photo without recipe, non-food content, unreadable)
+</validation>
+
+<extraction_rules>
+RECIPE NAME:
+- Extract the title if visible
+- If no title, create a descriptive name based on the dish
+
+SERVINGS:
+- Extract if stated (e.g., "Serves 4", "Makes 12 cookies")
+- Default to 4 if not specified
+
+TIME:
+- Extract prep time and cook time separately if available
+- Look for: "Prep: 15 min", "Cook Time: 30 minutes", "Total: 45 min"
+
+INGREDIENTS:
+- Extract each ingredient with amount and item name
+- Parse amounts: "2 cups flour", "1/2 lb butter", "3 large eggs"
+- Include notes when present: "1 cup milk, warmed", "2 cloves garlic, minced"
+- Standardize units: tsp, tbsp, cup, oz, lb, g, ml
+
+INSTRUCTIONS:
+- Extract step-by-step instructions
+- Keep each step concise but complete
+- Preserve order and numbering
+- Clean up formatting artifacts
+
+NUTRITION (if not stated, estimate based on ingredients):
+- Calculate per-serving values
+- Use standard nutritional databases for estimates
+- Round to reasonable values
+</extraction_rules>
+
+<nutrition_estimation>
+If nutrition facts are not visible, estimate based on ingredients:
+- Calculate total recipe nutrition from all ingredients
+- Divide by number of servings
+- Round calories to nearest 10, macros to nearest gram
+
+Common ingredient values (per standard amount):
+- Flour (1 cup): 455 cal, 13g protein, 95g carbs, 1g fat
+- Sugar (1 cup): 775 cal, 0g protein, 200g carbs, 0g fat
+- Butter (1 tbsp): 100 cal, 0g protein, 0g carbs, 11g fat
+- Egg (large): 70 cal, 6g protein, 0g carbs, 5g fat
+- Chicken breast (4 oz): 185 cal, 35g protein, 0g carbs, 4g fat
+- Olive oil (1 tbsp): 120 cal, 0g protein, 0g carbs, 14g fat
+</nutrition_estimation>`;
+
+export async function analyzeRecipeImage(
+	base64Data: string,
+	mimeType: string
+): Promise<RecipeAnalysis> {
+	const { output } = await generateText({
+		model: openrouter.chat('google/gemini-2.5-flash-preview-09-2025'),
+		providerOptions: {
+			openrouter: { provider: { sort: 'latency' }, reasoning: { enabled: true } }
+		},
+		output: Output.object({ schema: recipeAnalysisSchema }),
+		messages: [
+			{
+				role: 'system',
+				content: RECIPE_SCAN_PROMPT
+			},
+			{
+				role: 'user',
+				content: [
+					{
+						type: 'text',
+						text: 'Extract the complete recipe from this image. Include all ingredients, instructions, and estimate nutrition if not provided.'
+					},
+					{ type: 'image', image: base64Data, mediaType: mimeType }
+				]
+			}
+		]
+	});
+
+	if (!output.isValid) {
+		return {
+			isValid: false,
+			rejectionReason: output.rejectionReason || 'Could not extract a recipe from this image.',
+			name: '',
+			servings: 4,
+			ingredients: [],
+			instructions: [],
+			calories: 0,
+			protein: 0,
+			carbs: 0,
+			fat: 0
+		};
+	}
+
+	return output;
+}

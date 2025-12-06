@@ -8,10 +8,10 @@
 	} from '$lib/components/dialog';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import ChartLineIcon from '@lucide/svelte/icons/chart-line';
+	import ChartNoAxesCombinedIcon from '@lucide/svelte/icons/chart-no-axes-combined';
 	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
+	import CookingPotIcon from '@lucide/svelte/icons/cooking-pot';
 	import HamburgerIcon from '@lucide/svelte/icons/hamburger';
-	import RefrigeratorIcon from '@lucide/svelte/icons/refrigerator';
 	import type { User } from 'better-auth';
 	import HeaderUserMenu from './header-user-menu.svelte';
 
@@ -75,10 +75,10 @@
 						class="size-8"
 						onclick={() => (inventoryOpen = true)}
 					>
-						<RefrigeratorIcon class="size-4 text-muted-foreground" />
+						<CookingPotIcon class="size-4 text-muted-foreground" />
 					</Button>
 					<Button variant="outline" size="icon" class="size-8" href={resolve('/progress')}>
-						<ChartLineIcon class="size-4 text-muted-foreground" />
+						<ChartNoAxesCombinedIcon class="size-4 text-muted-foreground" />
 					</Button>
 				{/if}
 				<HeaderUserMenu

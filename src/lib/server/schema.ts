@@ -2,6 +2,7 @@ import {
 	boolean,
 	index,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	real,
@@ -340,6 +341,44 @@ export const shoppingListItems = pgTable(
 	(table) => [
 		index('shopping_list_items_list_id_idx').on(table.listId),
 		index('shopping_list_items_checked_idx').on(table.checked)
+	]
+);
+
+export type RecipeIngredient = {
+	item: string;
+	amount: string;
+	notes?: string;
+};
+
+export const recipes = pgTable(
+	'recipes',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		description: text('description'),
+		servings: integer('servings').default(4).notNull(),
+		calories: integer('calories'),
+		protein: integer('protein'),
+		carbs: integer('carbs'),
+		fat: integer('fat'),
+		prepTime: integer('prep_time'),
+		cookTime: integer('cook_time'),
+		ingredients: jsonb('ingredients').$type<RecipeIngredient[]>().notNull(),
+		instructions: jsonb('instructions').$type<string[]>().notNull(),
+		tips: text('tips'),
+		createdAt: timestamp('created_at')
+			.$defaultFn(() => new Date())
+			.notNull(),
+		updatedAt: timestamp('updated_at')
+			.$defaultFn(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		index('recipes_user_id_idx').on(table.userId),
+		index('recipes_name_idx').on(table.name)
 	]
 );
 

@@ -118,7 +118,7 @@
 	</div>
 
 	<div class="flex w-full justify-between px-1">
-		{#each history as day}
+		{#each history as day, i (i)}
 			<div class="flex flex-col items-center gap-2">
 				<div
 					class={cn(

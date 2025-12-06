@@ -169,15 +169,9 @@
 							)}
 						</p>
 					</div>
-					<div class="flex shrink-0 items-center gap-1">
-						<span
-							class="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-500 dark:text-blue-400"
-						>
-							{meal.protein ?? 0}g P
-						</span>
-						<div class="flex items-baseline gap-0.5 rounded-lg bg-foreground/5 px-2 py-1">
-							<span class="text-sm font-bold tabular-nums">{meal.calories}</span>
-						</div>
+					<div class="flex items-baseline gap-0.5 rounded-lg bg-foreground/5 px-2 py-1">
+						<span class="text-sm font-bold tabular-nums">{meal.calories}</span>
+						<span class="text-[10px] text-muted-foreground">kcal</span>
 					</div>
 				</div>
 			{/each}

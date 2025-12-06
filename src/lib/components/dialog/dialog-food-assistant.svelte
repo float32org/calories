@@ -4,6 +4,7 @@
 		ToolMeals,
 		ToolPantry,
 		ToolPreferences,
+		ToolRecipe,
 		ToolShoppingList,
 		ToolSuggestFood,
 		ToolTracking
@@ -24,6 +25,7 @@
 	} from '$lib/remote/meals.remote';
 	import { getPantryItems } from '$lib/remote/pantry.remote';
 	import { getProfile } from '$lib/remote/profile.remote';
+	import { getRecipes } from '$lib/remote/recipes.remote';
 	import { getShoppingLists } from '$lib/remote/shopping.remote';
 	import { getWaterForDate } from '$lib/remote/water.remote';
 	import { getLatestWeight } from '$lib/remote/weight.remote';
@@ -104,6 +106,8 @@
 				await getWaterForDate(date).refresh();
 			} else if (toolName === 'shoppingList') {
 				await getShoppingLists().refresh();
+			} else if (toolName === 'createRecipe') {
+				await getRecipes().refresh();
 			}
 		},
 		onError: () => toast.error('Something went wrong. Please try again.')
@@ -119,7 +123,8 @@
 		'tool-tracking',
 		'tool-preferences',
 		'tool-pantry',
-		'tool-shoppingList'
+		'tool-shoppingList',
+		'tool-createRecipe'
 	]);
 
 	const quickActions = [
@@ -352,6 +357,8 @@
 									<ToolPantry output={part.output} />
 								{:else if part.type === 'tool-shoppingList' && part.state === 'output-available'}
 									<ToolShoppingList output={part.output} />
+								{:else if part.type === 'tool-createRecipe' && part.state === 'input-available'}
+									<ToolRecipe {...part.input} {date} />
 								{/if}
 							{/each}
 						{:else}

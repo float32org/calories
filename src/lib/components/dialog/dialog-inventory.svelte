@@ -14,6 +14,13 @@
 		updatePantryItem
 	} from '$lib/remote/pantry.remote';
 	import {
+		deleteRecipe,
+		getRecipeImageUploadUrl,
+		getRecipes,
+		saveRecipe,
+		scanRecipeImage
+	} from '$lib/remote/recipes.remote';
+	import {
 		addShoppingListItem,
 		addShoppingListItems,
 		clearCheckedItems,
@@ -30,8 +37,16 @@
 		updateShoppingListItem
 	} from '$lib/remote/shopping.remote';
 	import { type PantryCategory } from '$lib/server/schema';
+	import { formatDuration } from '$lib/utils/format';
+	import { downloadRecipeAsMarkdown } from '$lib/utils/recipe';
+	import BookOpenIcon from '@lucide/svelte/icons/book-open';
 	import CheckIcon from '@lucide/svelte/icons/check';
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
+	import ClockIcon from '@lucide/svelte/icons/clock';
+	import CookingPotIcon from '@lucide/svelte/icons/cooking-pot';
 	import DownloadIcon from '@lucide/svelte/icons/download';
+	import FlameIcon from '@lucide/svelte/icons/flame';
 	import Loader2Icon from '@lucide/svelte/icons/loader-2';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -39,12 +54,13 @@
 	import ScanIcon from '@lucide/svelte/icons/scan';
 	import ShoppingCartIcon from '@lucide/svelte/icons/shopping-cart';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
+	import UsersIcon from '@lucide/svelte/icons/users';
 	import { toast } from 'svelte-sonner';
 	import ResponsiveDialog from './dialog-responsive.svelte';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
-	let activeTab = $state<'pantry' | 'shopping'>('pantry');
+	let activeTab = $state<'pantry' | 'recipes' | 'shopping'>('pantry');
 
 	type PantryItem = {
 		id: string;
@@ -89,14 +105,56 @@
 		items: ShoppingListItem[];
 	};
 
+	type RecipeIngredient = {
+		item: string;
+		amount: string;
+		notes?: string;
+	};
+
+	type Recipe = {
+		id: string;
+		name: string;
+		description: string | null;
+		servings: number;
+		prepTime: number | null;
+		cookTime: number | null;
+		ingredients: RecipeIngredient[];
+		instructions: string[];
+		calories: number | null;
+		protein: number | null;
+		carbs: number | null;
+		fat: number | null;
+		tips: string | null;
+		createdAt: string;
+	};
+
+	type ScannedRecipe = {
+		name: string;
+		description?: string;
+		servings: number;
+		prepTime?: number;
+		cookTime?: number;
+		ingredients: RecipeIngredient[];
+		instructions: string[];
+		calories: number;
+		protein: number;
+		carbs: number;
+		fat: number;
+		tips?: string;
+	};
+
 	const initialPantryItems = await getPantryItems();
 	const pantryItems = $derived(getPantryItems().current ?? initialPantryItems);
 
 	const initialShoppingLists = await getShoppingLists();
 	const shoppingLists = $derived(getShoppingLists().current ?? initialShoppingLists);
 
+	const initialRecipes = await getRecipes();
+	const savedRecipes = $derived(getRecipes().current ?? initialRecipes);
+
 	let pantryView = $state<'list' | 'add' | 'receipt-review'>('list');
 	let shoppingView = $state<'list' | 'add-item' | 'add-list' | 'edit-list' | 'scan-review'>('list');
+	let recipesView = $state<'list' | 'detail' | 'scan-review'>('list');
 
 	let newName = $state('');
 	let newCategory = $state<PantryCategory | ''>('');
@@ -118,6 +176,14 @@
 	let selectedListId = $state<string | undefined>(undefined);
 	let newListName = $state('');
 	let editingListId = $state<string | null>(null);
+
+	let recipeScanInput = $state<HTMLInputElement | null>(null);
+	let recipeAnalyzing = $state(false);
+	let scannedRecipe = $state<ScannedRecipe | null>(null);
+	let selectedRecipeId = $state<string | null>(null);
+	let expandedRecipeId = $state<string | null>(null);
+
+	const selectedRecipe = $derived(savedRecipes.find((r) => r.id === selectedRecipeId));
 
 	const unitOptions = [
 		{ value: 'count', label: 'count' },
@@ -170,13 +236,17 @@
 		if (activeTab === 'pantry') {
 			if (pantryView === 'add') return editingItemId ? 'Edit Item' : 'Add to Pantry';
 			if (pantryView === 'receipt-review') return 'Review Items';
-			return 'Pantry';
+			return 'Kitchen';
+		} else if (activeTab === 'recipes') {
+			if (recipesView === 'detail') return selectedRecipe?.name ?? 'Recipe';
+			if (recipesView === 'scan-review') return 'Review Recipe';
+			return 'Kitchen';
 		} else {
 			if (shoppingView === 'add-item') return editingItemId ? 'Edit Item' : 'Add to List';
 			if (shoppingView === 'add-list') return 'New List';
 			if (shoppingView === 'edit-list') return 'Edit List';
 			if (shoppingView === 'scan-review') return 'Review Items';
-			return 'Shopping';
+			return 'Kitchen';
 		}
 	});
 
@@ -184,6 +254,11 @@
 		if (activeTab === 'pantry') {
 			if (pantryView === 'receipt-review' && storeName) return `From ${storeName}`;
 			if (pantryView === 'list') return 'What you have on hand';
+			return undefined;
+		}
+		if (activeTab === 'recipes') {
+			if (recipesView === 'scan-review') return 'Review and save this recipe';
+			if (recipesView === 'list') return 'What you want to cook';
 			return undefined;
 		}
 		if (activeTab === 'shopping') {
@@ -197,6 +272,7 @@
 
 	const showBackButton = $derived(
 		(activeTab === 'pantry' && pantryView !== 'list') ||
+			(activeTab === 'recipes' && recipesView !== 'list') ||
 			(activeTab === 'shopping' && shoppingView !== 'list')
 	);
 
@@ -212,15 +288,102 @@
 		editingListId = null;
 		parsedShoppingItems = [];
 		shoppingTruncatedMessage = null;
+		scannedRecipe = null;
+		selectedRecipeId = null;
 	}
 
 	function goToList() {
 		if (activeTab === 'pantry') {
 			pantryView = 'list';
+		} else if (activeTab === 'recipes') {
+			recipesView = 'list';
 		} else {
 			shoppingView = 'list';
 		}
 		resetForm();
+	}
+
+	async function handleRecipeScan(e: Event) {
+		const target = e.target as HTMLInputElement;
+		if (!target.files || !target.files[0]) return;
+
+		const file = target.files[0];
+		const MAX_FILE_SIZE = 15 * 1024 * 1024;
+
+		if (file.size > MAX_FILE_SIZE) {
+			toast.error('Image is too large. Please use an image under 15MB.');
+			return;
+		}
+
+		const mimeType = file.type || 'image/jpeg';
+		recipeAnalyzing = true;
+
+		try {
+			const { imageKey, uploadUrl } = await getRecipeImageUploadUrl({ mimeType });
+
+			const uploadResponse = await fetch(uploadUrl, {
+				method: 'PUT',
+				body: file,
+				headers: { 'Content-Type': mimeType }
+			});
+
+			if (!uploadResponse.ok) {
+				throw new Error('Failed to upload image');
+			}
+
+			const result = await scanRecipeImage({ imageKey, mimeType });
+
+			scannedRecipe = result;
+			recipesView = 'scan-review';
+		} catch (err: unknown) {
+			console.error('Recipe scan failed:', err);
+			const message = err instanceof Error ? err.message : 'Failed to analyze image';
+			toast.error(message);
+		} finally {
+			recipeAnalyzing = false;
+			if (recipeScanInput) recipeScanInput.value = '';
+		}
+	}
+
+	async function handleSaveScannedRecipe() {
+		if (!scannedRecipe) return;
+
+		saving = true;
+		try {
+			await saveRecipe({
+				name: scannedRecipe.name,
+				description: scannedRecipe.description,
+				servings: scannedRecipe.servings,
+				prepTime: scannedRecipe.prepTime,
+				cookTime: scannedRecipe.cookTime,
+				ingredients: scannedRecipe.ingredients,
+				instructions: scannedRecipe.instructions,
+				calories: scannedRecipe.calories,
+				protein: scannedRecipe.protein,
+				carbs: scannedRecipe.carbs,
+				fat: scannedRecipe.fat,
+				tips: scannedRecipe.tips
+			}).updates(getRecipes());
+			goToList();
+		} catch (err) {
+			console.error('Failed to save recipe:', err);
+			toast.error('Failed to save recipe');
+		} finally {
+			saving = false;
+		}
+	}
+
+	async function handleDeleteRecipe(id: string) {
+		try {
+			await deleteRecipe(id).updates(getRecipes());
+		} catch (err) {
+			console.error('Failed to delete recipe:', err);
+			toast.error('Failed to delete recipe');
+		}
+	}
+
+	function handleDownloadRecipe(recipe: Recipe) {
+		downloadRecipeAsMarkdown(recipe);
 	}
 
 	function startEditingPantryItem(item: PantryItem) {
@@ -651,6 +814,7 @@
 		if (!open) {
 			pantryView = 'list';
 			shoppingView = 'list';
+			recipesView = 'list';
 			resetForm();
 		}
 	});
@@ -670,19 +834,15 @@
 	contentClass="sm:max-w-lg"
 >
 	{#snippet icon()}
-		{#if activeTab === 'pantry'}
-			<RefrigeratorIcon class="size-5 text-muted-foreground" />
-		{:else}
-			<ShoppingCartIcon class="size-5 text-muted-foreground" />
-		{/if}
+		<CookingPotIcon class="size-5 text-muted-foreground" />
 	{/snippet}
 
 	<div class="py-4 overflow-hidden">
-		{#if (activeTab === 'pantry' && pantryView === 'list') || (activeTab === 'shopping' && shoppingView === 'list')}
+		{#if (activeTab === 'pantry' && pantryView === 'list') || activeTab === 'recipes' || (activeTab === 'shopping' && shoppingView === 'list')}
 			<div class="flex gap-1 p-1 bg-muted rounded-lg mb-4">
 				<button
 					type="button"
-					class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors {activeTab ===
+					class="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-colors {activeTab ===
 					'pantry'
 						? 'bg-background text-foreground shadow-sm'
 						: 'text-muted-foreground hover:text-foreground'}"
@@ -702,7 +862,18 @@
 				</button>
 				<button
 					type="button"
-					class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors {activeTab ===
+					class="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-colors {activeTab ===
+					'recipes'
+						? 'bg-background text-foreground shadow-sm'
+						: 'text-muted-foreground hover:text-foreground'}"
+					onclick={() => (activeTab = 'recipes')}
+				>
+					<BookOpenIcon class="size-4" />
+					Recipes
+				</button>
+				<button
+					type="button"
+					class="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-sm font-medium transition-colors {activeTab ===
 					'shopping'
 						? 'bg-background text-foreground shadow-sm'
 						: 'text-muted-foreground hover:text-foreground'}"
@@ -957,391 +1128,642 @@
 					</Button>
 				</div>
 			{/if}
-		{:else if shoppingView === 'list'}
-			<div class="space-y-4">
-				<div class="flex gap-2">
-					{#if shoppingLists.length > 0}
-						<div class="relative flex-1">
-							<Select type="single" bind:value={selectedListId}>
-								<SelectTrigger class="w-full">
-									<span class="truncate">{selectedList?.name ?? 'Select list'}</span>
-								</SelectTrigger>
-								<SelectContent>
-									{#each shoppingLists as list (list.id)}
-										<SelectItem value={list.id}>{list.name}</SelectItem>
-									{/each}
-								</SelectContent>
-							</Select>
-						</div>
-						<Button
-							variant="outline"
-							size="icon"
-							onclick={() => (shoppingView = 'add-list')}
-							aria-label="Create new list"
-						>
-							<PlusIcon class="size-4" />
-						</Button>
-						{#if selectedList}
-							<Button
-								variant="outline"
-								size="icon"
-								onclick={() => startEditingList(selectedList)}
-								aria-label="Edit list"
-							>
-								<PencilIcon class="size-4" />
-							</Button>
-							<Button
-								variant="outline"
-								size="icon"
-								onclick={handleDownloadMarkdown}
-								aria-label="Download list"
-							>
-								<DownloadIcon class="size-4" />
-							</Button>
-						{/if}
-					{:else}
-						<Button variant="outline" class="flex-1" onclick={() => (shoppingView = 'add-list')}>
-							<PlusIcon class="size-4 mr-2" />
-							Create List
-						</Button>
-					{/if}
-				</div>
-
-				{#if !selectedList}
-					<div class="flex flex-col items-center justify-center py-12 text-center">
-						<div class="rounded-full bg-muted p-4 mb-4">
-							<ShoppingCartIcon class="size-8 text-muted-foreground" />
-						</div>
-						<p class="font-medium text-foreground">No shopping lists yet</p>
-						<p class="text-sm text-muted-foreground mt-1">Create a list to start adding items</p>
-					</div>
-				{:else}
+		{:else if activeTab === 'recipes'}
+			{#if recipesView === 'list'}
+				<div class="space-y-4">
 					<div class="flex gap-2">
-						<Button variant="outline" class="flex-1" onclick={() => (shoppingView = 'add-item')}>
-							<PlusIcon class="size-4 mr-2" />
-							Add Item
-						</Button>
 						<Button
 							variant="outline"
 							class="flex-1"
-							onclick={() => shoppingScanInput?.click()}
-							disabled={shoppingAnalyzing}
+							onclick={() => recipeScanInput?.click()}
+							disabled={recipeAnalyzing}
 						>
-							{#if shoppingAnalyzing}
+							{#if recipeAnalyzing}
 								<Loader2Icon class="size-4 mr-2 animate-spin" />
 								Scanning...
 							{:else}
 								<ScanIcon class="size-4 mr-2" />
-								Scan
+								Scan Recipe
 							{/if}
 						</Button>
 						<input
 							type="file"
-							accept="image/jpeg,image/png,image/webp,image/heic,.txt,.md,text/plain,text/markdown"
+							accept="image/jpeg,image/png,image/webp,image/heic"
 							capture="environment"
-							bind:this={shoppingScanInput}
-							onchange={handleShoppingScan}
+							bind:this={recipeScanInput}
+							onchange={handleRecipeScan}
 							class="hidden"
 						/>
 					</div>
-					{#if selectedList.items.length === 0}
-						<div class="flex flex-col items-center justify-center py-8 text-center">
-							<p class="text-sm text-muted-foreground">This list is empty</p>
+					{#if savedRecipes.length === 0}
+						<div class="flex flex-col items-center justify-center py-12 text-center">
+							<div class="rounded-full bg-muted p-4 mb-4">
+								<BookOpenIcon class="size-8 text-muted-foreground" />
+							</div>
+							<p class="font-medium text-foreground">No saved recipes yet</p>
+							<p class="text-sm text-muted-foreground mt-1 max-w-[250px]">
+								Scan one or use the assistant
+							</p>
 						</div>
 					{:else}
-						<div class="space-y-4 max-h-[300px] overflow-y-auto -mx-1 px-1">
-							{#each PANTRY_CATEGORY_ORDER as category (category)}
-								{#if groupedUncheckedItems[category]?.length}
-									<div>
-										<h3
-											class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1"
-										>
-											{PANTRY_CATEGORY_LABELS[category]}
-										</h3>
-										<div class="rounded-lg border bg-card overflow-hidden divide-y">
-											{#each groupedUncheckedItems[category] as item (item.id)}
-												<div
-													class="flex items-center justify-between py-2.5 px-3 hover:bg-muted/30 transition-colors group"
+						<div class="space-y-3 max-h-[400px] overflow-y-auto -mx-1 px-1">
+							{#each savedRecipes as recipe (recipe.id)}
+								{@const totalTime = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0)}
+								{@const isExpanded = expandedRecipeId === recipe.id}
+								<div class="rounded-lg border bg-card overflow-hidden">
+									<button
+										type="button"
+										class="w-full text-left p-3 hover:bg-muted/30 transition-colors"
+										onclick={() => (expandedRecipeId = isExpanded ? null : recipe.id)}
+									>
+										<div class="flex items-start justify-between gap-2">
+											<div class="flex-1 min-w-0">
+												<h4 class="font-medium truncate">{recipe.name}</h4>
+												<div class="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+													<span class="flex items-center gap-1">
+														<UsersIcon class="size-3" />
+														{recipe.servings}
+													</span>
+													{#if totalTime > 0}
+														<span class="flex items-center gap-1">
+															<ClockIcon class="size-3" />
+															{formatDuration(totalTime)}
+														</span>
+													{/if}
+													{#if recipe.calories}
+														<span class="flex items-center gap-1">
+															<FlameIcon class="size-3" />
+															{recipe.calories} cal
+														</span>
+													{/if}
+												</div>
+											</div>
+											{#if isExpanded}
+												<ChevronUpIcon class="size-4 text-muted-foreground shrink-0" />
+											{:else}
+												<ChevronDownIcon class="size-4 text-muted-foreground shrink-0" />
+											{/if}
+										</div>
+									</button>
+									{#if isExpanded}
+										<div class="border-t px-3 py-3 space-y-3 text-sm">
+											{#if recipe.description}
+												<p class="text-muted-foreground">{recipe.description}</p>
+											{/if}
+											<!-- Macros -->
+											{#if recipe.calories}
+												<div class="grid grid-cols-4 gap-2 text-center text-xs">
+													<div class="bg-muted/50 rounded p-1.5">
+														<div class="font-medium">{recipe.calories}</div>
+														<div class="text-muted-foreground">cal</div>
+													</div>
+													<div class="bg-muted/50 rounded p-1.5">
+														<div class="font-medium">{recipe.protein ?? 0}g</div>
+														<div class="text-muted-foreground">protein</div>
+													</div>
+													<div class="bg-muted/50 rounded p-1.5">
+														<div class="font-medium">{recipe.carbs ?? 0}g</div>
+														<div class="text-muted-foreground">carbs</div>
+													</div>
+													<div class="bg-muted/50 rounded p-1.5">
+														<div class="font-medium">{recipe.fat ?? 0}g</div>
+														<div class="text-muted-foreground">fat</div>
+													</div>
+												</div>
+											{/if}
+											<!-- Ingredients -->
+											<div>
+												<h5
+													class="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1.5"
 												>
-													<div class="flex items-center gap-3 min-w-0">
-														<button
-															type="button"
-															class="size-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors border-muted-foreground/30 hover:border-primary"
-															onclick={() => handleToggleItem(item.id)}
-															aria-label="Mark {item.name} as bought"
-														>
-														</button>
-														<span class="font-medium truncate">{item.name}</span>
-														{#if item.quantity && item.unit}
-															<span
-																class="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded whitespace-nowrap shrink-0"
-															>
-																{item.quantity}
-																{item.unit}
-															</span>
-														{/if}
-													</div>
+													Ingredients
+												</h5>
+												<ul class="space-y-0.5 text-muted-foreground">
+													{#each recipe.ingredients.slice(0, 5) as ing, i (i)}
+														<li class="flex gap-1.5">
+															<span class="text-foreground font-medium shrink-0">{ing.amount}</span>
+															<span>{ing.item}</span>
+														</li>
+													{/each}
+													{#if recipe.ingredients.length > 5}
+														<li class="text-xs text-muted-foreground/70">
+															+{recipe.ingredients.length - 5} more...
+														</li>
+													{/if}
+												</ul>
+											</div>
+											<!-- Actions -->
+											<div class="flex gap-2 pt-1">
+												<Button
+													variant="outline"
+													size="sm"
+													class="flex-1"
+													onclick={() => handleDownloadRecipe(recipe)}
+												>
+													<DownloadIcon class="size-4 mr-1" />
+													Download
+												</Button>
+												<Button
+													variant="outline"
+													size="sm"
+													class="text-destructive hover:text-destructive"
+													onclick={() => handleDeleteRecipe(recipe.id)}
+												>
+													<TrashIcon class="size-4" />
+												</Button>
+											</div>
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{:else if recipesView === 'scan-review' && scannedRecipe}
+				<div class="space-y-4">
+					<div class="rounded-lg border bg-card overflow-hidden">
+						<div class="p-3 border-b bg-muted/30">
+							<h4 class="font-semibold">{scannedRecipe.name}</h4>
+							{#if scannedRecipe.description}
+								<p class="text-sm text-muted-foreground mt-0.5">{scannedRecipe.description}</p>
+							{/if}
+							<div class="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+								<span class="flex items-center gap-1">
+									<UsersIcon class="size-3" />
+									{scannedRecipe.servings} servings
+								</span>
+								{#if (scannedRecipe.prepTime ?? 0) + (scannedRecipe.cookTime ?? 0) > 0}
+									<span class="flex items-center gap-1">
+										<ClockIcon class="size-3" />
+										{formatDuration((scannedRecipe.prepTime ?? 0) + (scannedRecipe.cookTime ?? 0))}
+									</span>
+								{/if}
+								<span class="flex items-center gap-1">
+									<FlameIcon class="size-3" />
+									{scannedRecipe.calories} cal
+								</span>
+							</div>
+						</div>
+						<div class="grid grid-cols-3 divide-x divide-border border-b text-center text-xs">
+							<div class="p-2">
+								<span class="block font-medium">{scannedRecipe.protein}g</span>
+								<span class="text-muted-foreground">Protein</span>
+							</div>
+							<div class="p-2">
+								<span class="block font-medium">{scannedRecipe.carbs}g</span>
+								<span class="text-muted-foreground">Carbs</span>
+							</div>
+							<div class="p-2">
+								<span class="block font-medium">{scannedRecipe.fat}g</span>
+								<span class="text-muted-foreground">Fat</span>
+							</div>
+						</div>
+						<div class="p-3 space-y-3 text-sm max-h-[250px] overflow-y-auto">
+							<div>
+								<h5
+									class="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1.5"
+								>
+									Ingredients ({scannedRecipe.ingredients.length})
+								</h5>
+								<ul class="space-y-1">
+									{#each scannedRecipe.ingredients as ing, i (i)}
+										<li class="flex gap-2">
+											<span class="text-primary font-medium shrink-0">{ing.amount}</span>
+											<span class="text-muted-foreground">
+												{ing.item}
+												{#if ing.notes}
+													<span class="text-muted-foreground/70">({ing.notes})</span>
+												{/if}
+											</span>
+										</li>
+									{/each}
+								</ul>
+							</div>
+							<div>
+								<h5
+									class="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1.5"
+								>
+									Instructions ({scannedRecipe.instructions.length} steps)
+								</h5>
+								<ol class="space-y-1.5">
+									{#each scannedRecipe.instructions as step, i (i)}
+										<li class="flex gap-2">
+											<span
+												class="shrink-0 size-5 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center"
+											>
+												{i + 1}
+											</span>
+											<span class="text-muted-foreground">{step}</span>
+										</li>
+									{/each}
+								</ol>
+							</div>
+							{#if scannedRecipe.tips}
+								<div class="rounded bg-muted/50 p-2 text-xs text-muted-foreground">
+									<span class="font-medium">Tip:</span>
+									{scannedRecipe.tips}
+								</div>
+							{/if}
+						</div>
+					</div>
+					<Button onclick={handleSaveScannedRecipe} disabled={saving} class="w-full">
+						{#if saving}
+							<Loader2Icon class="size-4 mr-2 animate-spin" />
+							Saving...
+						{:else}
+							<CheckIcon class="size-4 mr-2" />
+							Save Recipe
+						{/if}
+					</Button>
+				</div>
+			{/if}
+		{:else if activeTab === 'shopping'}
+			{#if shoppingView === 'list'}
+				<div class="space-y-4">
+					<div class="flex gap-2">
+						{#if shoppingLists.length > 0}
+							<div class="relative flex-1">
+								<Select type="single" bind:value={selectedListId}>
+									<SelectTrigger class="w-full">
+										<span class="truncate">{selectedList?.name ?? 'Select list'}</span>
+									</SelectTrigger>
+									<SelectContent>
+										{#each shoppingLists as list (list.id)}
+											<SelectItem value={list.id}>{list.name}</SelectItem>
+										{/each}
+									</SelectContent>
+								</Select>
+							</div>
+							<Button
+								variant="outline"
+								size="icon"
+								onclick={() => (shoppingView = 'add-list')}
+								aria-label="Create new list"
+							>
+								<PlusIcon class="size-4" />
+							</Button>
+							{#if selectedList}
+								<Button
+									variant="outline"
+									size="icon"
+									onclick={() => startEditingList(selectedList)}
+									aria-label="Edit list"
+								>
+									<PencilIcon class="size-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="icon"
+									onclick={handleDownloadMarkdown}
+									aria-label="Download list"
+								>
+									<DownloadIcon class="size-4" />
+								</Button>
+							{/if}
+						{:else}
+							<Button variant="outline" class="flex-1" onclick={() => (shoppingView = 'add-list')}>
+								<PlusIcon class="size-4 mr-2" />
+								Create List
+							</Button>
+						{/if}
+					</div>
+
+					{#if !selectedList}
+						<div class="flex flex-col items-center justify-center py-12 text-center">
+							<div class="rounded-full bg-muted p-4 mb-4">
+								<ShoppingCartIcon class="size-8 text-muted-foreground" />
+							</div>
+							<p class="font-medium text-foreground">No shopping lists yet</p>
+							<p class="text-sm text-muted-foreground mt-1">Create a list to start adding items</p>
+						</div>
+					{:else}
+						<div class="flex gap-2">
+							<Button variant="outline" class="flex-1" onclick={() => (shoppingView = 'add-item')}>
+								<PlusIcon class="size-4 mr-2" />
+								Add Item
+							</Button>
+							<Button
+								variant="outline"
+								class="flex-1"
+								onclick={() => shoppingScanInput?.click()}
+								disabled={shoppingAnalyzing}
+							>
+								{#if shoppingAnalyzing}
+									<Loader2Icon class="size-4 mr-2 animate-spin" />
+									Scanning...
+								{:else}
+									<ScanIcon class="size-4 mr-2" />
+									Scan
+								{/if}
+							</Button>
+							<input
+								type="file"
+								accept="image/jpeg,image/png,image/webp,image/heic,.txt,.md,text/plain,text/markdown"
+								capture="environment"
+								bind:this={shoppingScanInput}
+								onchange={handleShoppingScan}
+								class="hidden"
+							/>
+						</div>
+						{#if selectedList.items.length === 0}
+							<div class="flex flex-col items-center justify-center py-8 text-center">
+								<p class="text-sm text-muted-foreground">This list is empty</p>
+							</div>
+						{:else}
+							<div class="space-y-4 max-h-[300px] overflow-y-auto -mx-1 px-1">
+								{#each PANTRY_CATEGORY_ORDER as category (category)}
+									{#if groupedUncheckedItems[category]?.length}
+										<div>
+											<h3
+												class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1"
+											>
+												{PANTRY_CATEGORY_LABELS[category]}
+											</h3>
+											<div class="rounded-lg border bg-card overflow-hidden divide-y">
+												{#each groupedUncheckedItems[category] as item (item.id)}
 													<div
-														class="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+														class="flex items-center justify-between py-2.5 px-3 hover:bg-muted/30 transition-colors group"
 													>
-														<button
-															type="button"
-															class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-															onclick={() => startEditingShoppingItem(item)}
+														<div class="flex items-center gap-3 min-w-0">
+															<button
+																type="button"
+																class="size-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors border-muted-foreground/30 hover:border-primary"
+																onclick={() => handleToggleItem(item.id)}
+																aria-label="Mark {item.name} as bought"
+															>
+															</button>
+															<span class="font-medium truncate">{item.name}</span>
+															{#if item.quantity && item.unit}
+																<span
+																	class="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded whitespace-nowrap shrink-0"
+																>
+																	{item.quantity}
+																	{item.unit}
+																</span>
+															{/if}
+														</div>
+														<div
+															class="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
 														>
-															<PencilIcon class="size-4" />
-														</button>
-														<button
-															type="button"
-															class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
-															onclick={() => handleDeleteShoppingItem(item.id)}
-														>
-															<TrashIcon class="size-4" />
-														</button>
+															<button
+																type="button"
+																class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+																onclick={() => startEditingShoppingItem(item)}
+															>
+																<PencilIcon class="size-4" />
+															</button>
+															<button
+																type="button"
+																class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+																onclick={() => handleDeleteShoppingItem(item.id)}
+															>
+																<TrashIcon class="size-4" />
+															</button>
+														</div>
 													</div>
+												{/each}
+											</div>
+										</div>
+									{/if}
+								{/each}
+								{#if checkedItems.length > 0}
+									<div>
+										<div class="flex items-center justify-between mb-2 px-1">
+											<h3
+												class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
+											>
+												Checked ({checkedItems.length})
+											</h3>
+											<button
+												type="button"
+												class="text-xs text-muted-foreground hover:text-foreground"
+												onclick={handleUncheckAll}
+											>
+												Uncheck all
+											</button>
+										</div>
+										<div class="rounded-lg border bg-card overflow-hidden divide-y opacity-60">
+											{#each checkedItems as item (item.id)}
+												<div
+													class="flex items-center gap-3 py-2.5 px-3 hover:bg-muted/30 transition-colors group"
+												>
+													<button
+														type="button"
+														class="size-5 rounded border-2 flex items-center justify-center transition-colors bg-primary border-primary text-primary-foreground"
+														onclick={() => handleToggleItem(item.id)}
+														aria-label="Uncheck {item.name}"
+													>
+														<CheckIcon class="size-3" />
+													</button>
+													<span class="flex-1 line-through text-muted-foreground truncate">
+														{item.name}
+													</span>
+													<button
+														type="button"
+														class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+														onclick={() => handleDeleteShoppingItem(item.id)}
+														aria-label="Delete {item.name}"
+													>
+														<TrashIcon class="size-4" />
+													</button>
 												</div>
 											{/each}
 										</div>
 									</div>
 								{/if}
-							{/each}
+							</div>
 							{#if checkedItems.length > 0}
-								<div>
-									<div class="flex items-center justify-between mb-2 px-1">
-										<h3
-											class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
-										>
-											Checked ({checkedItems.length})
-										</h3>
-										<button
-											type="button"
-											class="text-xs text-muted-foreground hover:text-foreground"
-											onclick={handleUncheckAll}
-										>
-											Uncheck all
-										</button>
-									</div>
-									<div class="rounded-lg border bg-card overflow-hidden divide-y opacity-60">
-										{#each checkedItems as item (item.id)}
-											<div
-												class="flex items-center gap-3 py-2.5 px-3 hover:bg-muted/30 transition-colors group"
-											>
-												<button
-													type="button"
-													class="size-5 rounded border-2 flex items-center justify-center transition-colors bg-primary border-primary text-primary-foreground"
-													onclick={() => handleToggleItem(item.id)}
-													aria-label="Uncheck {item.name}"
-												>
-													<CheckIcon class="size-3" />
-												</button>
-												<span class="flex-1 line-through text-muted-foreground truncate">
-													{item.name}
-												</span>
-												<button
-													type="button"
-													class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-													onclick={() => handleDeleteShoppingItem(item.id)}
-													aria-label="Delete {item.name}"
-												>
-													<TrashIcon class="size-4" />
-												</button>
-											</div>
-										{/each}
-									</div>
-								</div>
+								<Button onclick={handleMarkBoughtAndAddToPantry} disabled={saving} class="w-full">
+									{#if saving}
+										<Loader2Icon class="size-4 mr-2 animate-spin" />
+										Adding to Pantry...
+									{:else}
+										<RefrigeratorIcon class="size-4 mr-2" />
+										Add {checkedItems.length} to Pantry
+									{/if}
+								</Button>
 							{/if}
-						</div>
-						{#if checkedItems.length > 0}
-							<Button onclick={handleMarkBoughtAndAddToPantry} disabled={saving} class="w-full">
-								{#if saving}
-									<Loader2Icon class="size-4 mr-2 animate-spin" />
-									Adding to Pantry...
-								{:else}
-									<RefrigeratorIcon class="size-4 mr-2" />
-									Add {checkedItems.length} to Pantry
-								{/if}
-							</Button>
 						{/if}
 					{/if}
-				{/if}
-			</div>
-		{:else if shoppingView === 'add-item'}
-			<div class="space-y-4">
-				<div class="space-y-2">
-					<Label for="shoppingItemName">Item Name</Label>
-					<InputGroup>
-						<InputGroupInput
-							id="shoppingItemName"
-							type="text"
-							placeholder="e.g., Chicken Breast"
-							bind:value={newName}
-						/>
-					</InputGroup>
 				</div>
-
-				<div class="grid grid-cols-2 gap-4">
+			{:else if shoppingView === 'add-item'}
+				<div class="space-y-4">
 					<div class="space-y-2">
-						<Label for="shoppingCategory">Category</Label>
-						<Select type="single" bind:value={newCategory}>
-							<SelectTrigger class="w-full">
-								{#if newCategory}
-									{PANTRY_CATEGORY_LABELS[newCategory]}
-								{:else}
-									<span class="text-muted-foreground">Select...</span>
-								{/if}
-							</SelectTrigger>
-							<SelectContent>
-								{#each PANTRY_CATEGORY_ORDER as cat (cat)}
-									<SelectItem value={cat}>{PANTRY_CATEGORY_LABELS[cat]}</SelectItem>
-								{/each}
-							</SelectContent>
-						</Select>
+						<Label for="shoppingItemName">Item Name</Label>
+						<InputGroup>
+							<InputGroupInput
+								id="shoppingItemName"
+								type="text"
+								placeholder="e.g., Chicken Breast"
+								bind:value={newName}
+							/>
+						</InputGroup>
 					</div>
 
-					<div class="space-y-2">
-						<Label for="shoppingQuantity">Quantity</Label>
-						<div class="flex gap-2">
-							<InputGroup class="flex-1">
-								<InputGroupInput
-									id="shoppingQuantity"
-									type="number"
-									step="any"
-									min="0"
-									bind:value={newQuantity}
-								/>
-							</InputGroup>
-							<Select type="single" bind:value={newUnit}>
-								<SelectTrigger class="w-24">
-									{newUnit}
+					<div class="grid grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<Label for="shoppingCategory">Category</Label>
+							<Select type="single" bind:value={newCategory}>
+								<SelectTrigger class="w-full">
+									{#if newCategory}
+										{PANTRY_CATEGORY_LABELS[newCategory]}
+									{:else}
+										<span class="text-muted-foreground">Select...</span>
+									{/if}
 								</SelectTrigger>
 								<SelectContent>
-									{#each unitOptions as unit (unit.value)}
-										<SelectItem value={unit.value}>{unit.label}</SelectItem>
+									{#each PANTRY_CATEGORY_ORDER as cat (cat)}
+										<SelectItem value={cat}>{PANTRY_CATEGORY_LABELS[cat]}</SelectItem>
 									{/each}
 								</SelectContent>
 							</Select>
 						</div>
+
+						<div class="space-y-2">
+							<Label for="shoppingQuantity">Quantity</Label>
+							<div class="flex gap-2">
+								<InputGroup class="flex-1">
+									<InputGroupInput
+										id="shoppingQuantity"
+										type="number"
+										step="any"
+										min="0"
+										bind:value={newQuantity}
+									/>
+								</InputGroup>
+								<Select type="single" bind:value={newUnit}>
+									<SelectTrigger class="w-24">
+										{newUnit}
+									</SelectTrigger>
+									<SelectContent>
+										{#each unitOptions as unit (unit.value)}
+											<SelectItem value={unit.value}>{unit.label}</SelectItem>
+										{/each}
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
 					</div>
-				</div>
 
-				<Button
-					onclick={handleSaveShoppingItem}
-					disabled={!newName.trim() || saving}
-					class="w-full"
-				>
-					{#if saving}
-						<Loader2Icon class="size-4 mr-2 animate-spin" />
-						{editingItemId ? 'Saving...' : 'Adding...'}
-					{:else}
-						<CheckIcon class="size-4 mr-2" />
-						{editingItemId ? 'Save Changes' : 'Add Item'}
-					{/if}
-				</Button>
-			</div>
-		{:else if shoppingView === 'add-list' || shoppingView === 'edit-list'}
-			<div class="space-y-4">
-				<div class="space-y-2">
-					<Label for="listName">List Name</Label>
-					<InputGroup>
-						<InputGroupInput
-							id="listName"
-							type="text"
-							placeholder="e.g., Weekly Groceries"
-							bind:value={newListName}
-						/>
-					</InputGroup>
-				</div>
-
-				<Button onclick={handleSaveList} disabled={!newListName.trim() || saving} class="w-full">
-					{#if saving}
-						<Loader2Icon class="size-4 mr-2 animate-spin" />
-						{editingListId ? 'Saving...' : 'Creating...'}
-					{:else}
-						<CheckIcon class="size-4 mr-2" />
-						{editingListId ? 'Save Changes' : 'Create List'}
-					{/if}
-				</Button>
-
-				{#if editingListId}
 					<Button
-						variant="destructive"
-						onclick={() => handleDeleteList(editingListId!)}
+						onclick={handleSaveShoppingItem}
+						disabled={!newName.trim() || saving}
 						class="w-full"
 					>
-						<TrashIcon class="size-4 mr-2" />
-						Delete List
+						{#if saving}
+							<Loader2Icon class="size-4 mr-2 animate-spin" />
+							{editingItemId ? 'Saving...' : 'Adding...'}
+						{:else}
+							<CheckIcon class="size-4 mr-2" />
+							{editingItemId ? 'Save Changes' : 'Add Item'}
+						{/if}
 					</Button>
-				{/if}
-			</div>
-		{:else if shoppingView === 'scan-review'}
-			<div class="space-y-4">
-				<div class="flex items-center justify-between">
-					<span class="text-sm text-muted-foreground">
-						{parsedShoppingItems.filter((i) => i.selected).length} of {parsedShoppingItems.length} selected
-					</span>
-					<div class="flex gap-2">
-						<button
-							type="button"
-							class="text-xs text-primary hover:underline"
-							onclick={selectAllShoppingItems}
-						>
-							Select all
-						</button>
-						<button
-							type="button"
-							class="text-xs text-muted-foreground hover:underline"
-							onclick={deselectAllShoppingItems}
-						>
-							Clear
-						</button>
+				</div>
+			{:else if shoppingView === 'add-list' || shoppingView === 'edit-list'}
+				<div class="space-y-4">
+					<div class="space-y-2">
+						<Label for="listName">List Name</Label>
+						<InputGroup>
+							<InputGroupInput
+								id="listName"
+								type="text"
+								placeholder="e.g., Weekly Groceries"
+								bind:value={newListName}
+							/>
+						</InputGroup>
 					</div>
-				</div>
 
-				<div class="space-y-1 max-h-[350px] overflow-y-auto">
-					{#each parsedShoppingItems as item, index (index)}
-						<button
-							type="button"
-							class="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/50 text-left transition-colors {item.selected
-								? 'bg-primary/5'
-								: ''}"
-							onclick={() => toggleShoppingItemSelection(index)}
+					<Button onclick={handleSaveList} disabled={!newListName.trim() || saving} class="w-full">
+						{#if saving}
+							<Loader2Icon class="size-4 mr-2 animate-spin" />
+							{editingListId ? 'Saving...' : 'Creating...'}
+						{:else}
+							<CheckIcon class="size-4 mr-2" />
+							{editingListId ? 'Save Changes' : 'Create List'}
+						{/if}
+					</Button>
+
+					{#if editingListId}
+						<Button
+							variant="destructive"
+							onclick={() => handleDeleteList(editingListId!)}
+							class="w-full"
 						>
-							<div
-								class="size-5 rounded border-2 flex items-center justify-center transition-colors {item.selected
-									? 'bg-primary border-primary text-primary-foreground'
-									: 'border-muted-foreground/30'}"
-							>
-								{#if item.selected}
-									<CheckIcon class="size-3" />
-								{/if}
-							</div>
-							<div class="flex-1 min-w-0">
-								<div class="truncate font-medium">{item.name}</div>
-								<div class="text-xs text-muted-foreground">
-									{#if item.quantity && item.unit}
-										{item.quantity} {item.unit} ·
-									{/if}
-									{PANTRY_CATEGORY_LABELS[item.category ?? 'other']}
-								</div>
-							</div>
-						</button>
-					{/each}
-				</div>
-
-				<Button
-					onclick={handleAddSelectedShoppingItems}
-					disabled={parsedShoppingItems.filter((i) => i.selected).length === 0 || saving}
-					class="w-full"
-				>
-					{#if saving}
-						<Loader2Icon class="size-4 mr-2 animate-spin" />
-						Adding...
-					{:else}
-						<CheckIcon class="size-4 mr-2" />
-						Add {parsedShoppingItems.filter((i) => i.selected).length} Items
+							<TrashIcon class="size-4 mr-2" />
+							Delete List
+						</Button>
 					{/if}
-				</Button>
-			</div>
+				</div>
+			{:else if shoppingView === 'scan-review'}
+				<div class="space-y-4">
+					<div class="flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">
+							{parsedShoppingItems.filter((i) => i.selected).length} of {parsedShoppingItems.length} selected
+						</span>
+						<div class="flex gap-2">
+							<button
+								type="button"
+								class="text-xs text-primary hover:underline"
+								onclick={selectAllShoppingItems}
+							>
+								Select all
+							</button>
+							<button
+								type="button"
+								class="text-xs text-muted-foreground hover:underline"
+								onclick={deselectAllShoppingItems}
+							>
+								Clear
+							</button>
+						</div>
+					</div>
+
+					<div class="space-y-1 max-h-[350px] overflow-y-auto">
+						{#each parsedShoppingItems as item, index (index)}
+							<button
+								type="button"
+								class="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/50 text-left transition-colors {item.selected
+									? 'bg-primary/5'
+									: ''}"
+								onclick={() => toggleShoppingItemSelection(index)}
+							>
+								<div
+									class="size-5 rounded border-2 flex items-center justify-center transition-colors {item.selected
+										? 'bg-primary border-primary text-primary-foreground'
+										: 'border-muted-foreground/30'}"
+								>
+									{#if item.selected}
+										<CheckIcon class="size-3" />
+									{/if}
+								</div>
+								<div class="flex-1 min-w-0">
+									<div class="truncate font-medium">{item.name}</div>
+									<div class="text-xs text-muted-foreground">
+										{#if item.quantity && item.unit}
+											{item.quantity} {item.unit} ·
+										{/if}
+										{PANTRY_CATEGORY_LABELS[item.category ?? 'other']}
+									</div>
+								</div>
+							</button>
+						{/each}
+					</div>
+
+					<Button
+						onclick={handleAddSelectedShoppingItems}
+						disabled={parsedShoppingItems.filter((i) => i.selected).length === 0 || saving}
+						class="w-full"
+					>
+						{#if saving}
+							<Loader2Icon class="size-4 mr-2 animate-spin" />
+							Adding...
+						{:else}
+							<CheckIcon class="size-4 mr-2" />
+							Add {parsedShoppingItems.filter((i) => i.selected).length} Items
+						{/if}
+					</Button>
+				</div>
+			{/if}
 		{/if}
 	</div>
 </ResponsiveDialog>

@@ -46,3 +46,10 @@ export function formatTime(timestamp: number): string {
 	const displayMinutes = minutes.toString().padStart(2, '0');
 	return `${displayHours}:${displayMinutes} ${ampm}`;
 }
+
+export function formatDuration(minutes: number): string {
+	if (minutes < 60) return `${minutes}m`;
+	const hours = Math.floor(minutes / 60);
+	const mins = minutes % 60;
+	return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+}

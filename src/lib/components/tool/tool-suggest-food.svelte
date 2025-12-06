@@ -40,7 +40,7 @@
 			</div>
 		</div>
 	</div>
-	<div class="grid grid-cols-3 gap-px bg-border p-px text-center text-xs">
+	<div class="grid grid-cols-3 divide-x divide-border border-b text-center text-xs">
 		<div class="bg-card p-2">
 			<span class="block font-medium text-foreground">{protein}g</span>
 			<span class="text-muted-foreground">Protein</span>
